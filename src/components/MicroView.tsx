@@ -1,23 +1,81 @@
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { useRef, useEffect, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SimulationState } from '../types';
+
+// Simple orbit controls using mouse events
+function SimpleOrbitControls() {
+  const { camera, gl } = useThree();
+  const isDragging = useRef(false);
+  const previousMouse = useRef({ x: 0, y: 0 });
+  const spherical = useRef(new THREE.Spherical().setFromVector3(
+    new THREE.Vector3().copy(camera.position)
+  ));
+
+  useEffect(() => {
+    const domElement = gl.domElement;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDragging.current = true;
+      previousMouse.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const deltaX = e.clientX - previousMouse.current.x;
+      const deltaY = e.clientY - previousMouse.current.y;
+      previousMouse.current = { x: e.clientX, y: e.clientY };
+
+      spherical.current.theta -= deltaX * 0.005;
+      spherical.current.phi -= deltaY * 0.005;
+      spherical.current.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.current.phi));
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      spherical.current.radius += e.deltaY * 0.005;
+      spherical.current.radius = Math.max(2, Math.min(8, spherical.current.radius));
+    };
+
+    domElement.addEventListener('mousedown', onMouseDown);
+    domElement.addEventListener('mousemove', onMouseMove);
+    domElement.addEventListener('mouseup', onMouseUp);
+    domElement.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      domElement.removeEventListener('mousedown', onMouseDown);
+      domElement.removeEventListener('mousemove', onMouseMove);
+      domElement.removeEventListener('mouseup', onMouseUp);
+      domElement.removeEventListener('wheel', onWheel);
+    };
+  }, [gl]);
+
+  useFrame(() => {
+    const pos = new THREE.Vector3().setFromSpherical(spherical.current);
+    camera.position.copy(pos);
+    camera.lookAt(0, 0.2, 0);
+  });
+
+  return null;
+}
 
 function BladderMesh({ state }: { state: SimulationState }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const wallRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+  const wallMatRef = useRef<THREE.MeshStandardMaterial>(null);
 
   const fillRatio = Math.min(1.2, state.bladderVolume / state.maxCapacity);
   const pressureNorm = state.bladderPressure / 120;
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     if (meshRef.current) {
-      // Bladder expands based on fill
       const scale = 0.5 + fillRatio * 0.8;
       meshRef.current.scale.setScalar(scale);
-      
-      // Subtle pulsing based on pressure
       const pulse = Math.sin(Date.now() * 0.003 * (1 + pressureNorm * 2)) * 0.02 * pressureNorm;
       meshRef.current.scale.multiplyScalar(1 + pulse);
     }
@@ -25,49 +83,56 @@ function BladderMesh({ state }: { state: SimulationState }) {
       const wallScale = 0.55 + fillRatio * 0.85;
       wallRef.current.scale.setScalar(wallScale);
     }
+    if (matRef.current) {
+      if (pressureNorm < 0.33) {
+        matRef.current.color.setRGB(0.2, 0.5, 0.9);
+      } else if (pressureNorm < 0.66) {
+        matRef.current.color.setRGB(0.9, 0.8, 0.2);
+      } else {
+        matRef.current.color.setRGB(0.9, 0.2, 0.1);
+      }
+    }
+    if (wallMatRef.current) {
+      if (pressureNorm < 0.33) {
+        wallMatRef.current.color.setRGB(0.2, 0.5, 0.9);
+      } else if (pressureNorm < 0.66) {
+        wallMatRef.current.color.setRGB(0.9, 0.8, 0.2);
+      } else {
+        wallMatRef.current.color.setRGB(0.9, 0.2, 0.1);
+      }
+    }
   });
-
-  // Thermal color mapping
-  const bladderColor = useMemo(() => {
-    if (pressureNorm < 0.33) return new THREE.Color(0.2, 0.5, 0.9); // Blue - relaxed
-    if (pressureNorm < 0.66) return new THREE.Color(0.9, 0.8, 0.2); // Yellow - building
-    return new THREE.Color(0.9, 0.2, 0.1); // Red - critical
-  }, [pressureNorm]);
 
   return (
     <group position={[0, 0.2, 0]}>
-      {/* Bladder wall (outer) */}
       <mesh ref={wallRef}>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshPhysicalMaterial
-          color={bladderColor}
+        <meshStandardMaterial
+          ref={wallMatRef}
+          color="#3388ee"
           transparent
           opacity={0.3}
           roughness={0.4}
           metalness={0.1}
           side={THREE.DoubleSide}
-          transmission={0.3}
         />
       </mesh>
-      
-      {/* Bladder interior (fluid) */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshPhysicalMaterial
-          color={bladderColor}
+        <meshStandardMaterial
+          ref={matRef}
+          color="#3388ee"
           transparent
           opacity={0.6}
           roughness={0.2}
           metalness={0.05}
-          transmission={0.4}
-          thickness={0.5}
         />
       </mesh>
     </group>
   );
 }
 
-function UreterDrip({ state }: { state: SimulationState }) {
+function UreterDrip() {
   const dropsRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
@@ -77,7 +142,8 @@ function UreterDrip({ state }: { state: SimulationState }) {
         const t = ((Date.now() * 0.001 + i * 0.5) % 2) / 2;
         mesh.position.y = 1.5 - t * 1.5;
         mesh.scale.setScalar(Math.sin(t * Math.PI) * 0.5);
-        (mesh.material as THREE.MeshStandardMaterial).opacity = Math.sin(t * Math.PI) * 0.8;
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        mat.opacity = Math.sin(t * Math.PI) * 0.8;
       });
     }
   });
@@ -96,6 +162,10 @@ function UreterDrip({ state }: { state: SimulationState }) {
 
 function Urethra({ state }: { state: SimulationState }) {
   const tubeRef = useRef<THREE.Mesh>(null);
+  const sphincter1Ref = useRef<THREE.Mesh>(null);
+  const sphincter2Ref = useRef<THREE.Mesh>(null);
+  const sphMat1Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const sphMat2Ref = useRef<THREE.MeshStandardMaterial>(null);
   
   const sphincterTension = state.sphincterLocked ? 1 : (1 - state.sphincterFatigue / 100);
   const trembling = state.sphincterTrembling;
@@ -104,45 +174,40 @@ function Urethra({ state }: { state: SimulationState }) {
     if (tubeRef.current) {
       const tremble = trembling ? Math.sin(Date.now() * 0.02) * 0.02 : 0;
       tubeRef.current.position.x = tremble;
-      
       const squeeze = 0.08 + sphincterTension * 0.06;
       tubeRef.current.scale.x = squeeze;
       tubeRef.current.scale.z = squeeze;
     }
-  });
+    const fatigue = state.sphincterFatigue;
+    let r = 1, g = 0.53, b = 0.53;
+    if (fatigue > 80) { r = 1; g = 0.27; b = 0.27; }
+    else if (fatigue > 50) { r = 1; g = 0.67; b = 0; }
+    
+    if (sphMat1Ref.current) sphMat1Ref.current.color.setRGB(r, g, b);
+    if (sphMat2Ref.current) sphMat2Ref.current.color.setRGB(r, g, b);
 
-  const sphincterColor = useMemo(() => {
-    if (state.sphincterFatigue > 80) return '#ff4444';
-    if (state.sphincterFatigue > 50) return '#ffaa00';
-    return '#ff8888';
-  }, [state.sphincterFatigue]);
+    if (sphincter1Ref.current) {
+      sphincter1Ref.current.scale.setScalar(0.8 + sphincterTension * 0.4);
+    }
+    if (sphincter2Ref.current) {
+      sphincter2Ref.current.scale.setScalar(0.8 + sphincterTension * 0.4);
+    }
+  });
 
   return (
     <group position={[0, -0.8, 0]}>
-      {/* Urethra tube */}
       <mesh ref={tubeRef}>
         <cylinderGeometry args={[0.08, 0.06, 0.8, 16]} />
-        <meshPhysicalMaterial
-          color="#cc6666"
-          transparent
-          opacity={0.7}
-          roughness={0.6}
-        />
+        <meshStandardMaterial color="#cc6666" transparent opacity={0.7} roughness={0.6} />
       </mesh>
-      
-      {/* Internal sphincter */}
-      <mesh position={[0, 0.2, 0]}>
-        <torusGeometry args={[0.12, 0.04 * sphincterTension, 16, 32]} />
-        <meshStandardMaterial color={sphincterColor} roughness={0.5} />
+      <mesh ref={sphincter1Ref} position={[0, 0.2, 0]}>
+        <torusGeometry args={[0.12, 0.04, 16, 32]} />
+        <meshStandardMaterial ref={sphMat1Ref} color="#ff8888" roughness={0.5} />
       </mesh>
-      
-      {/* External sphincter */}
-      <mesh position={[0, -0.1, 0]}>
-        <torusGeometry args={[0.14, 0.05 * sphincterTension, 16, 32]} />
-        <meshStandardMaterial color={sphincterColor} roughness={0.5} />
+      <mesh ref={sphincter2Ref} position={[0, -0.1, 0]}>
+        <torusGeometry args={[0.14, 0.05, 16, 32]} />
+        <meshStandardMaterial ref={sphMat2Ref} color="#ff8888" roughness={0.5} />
       </mesh>
-
-      {/* Flow indicator */}
       {state.urethralFlow > 0 && (
         <mesh position={[0, -0.5, 0]}>
           <cylinderGeometry args={[0.02, 0.04, 0.3, 8]} />
@@ -156,7 +221,6 @@ function Urethra({ state }: { state: SimulationState }) {
 function PelvisOutline() {
   return (
     <group>
-      {/* Pelvic bone outlines */}
       <mesh position={[-1.5, -0.5, 0]} rotation={[0, 0, 0.3]}>
         <boxGeometry args={[0.15, 2, 1]} />
         <meshStandardMaterial color="#e8dcc8" transparent opacity={0.3} roughness={0.8} />
@@ -165,7 +229,6 @@ function PelvisOutline() {
         <boxGeometry args={[0.15, 2, 1]} />
         <meshStandardMaterial color="#e8dcc8" transparent opacity={0.3} roughness={0.8} />
       </mesh>
-      {/* Pubic symphysis */}
       <mesh position={[0, -1.2, 0.5]}>
         <boxGeometry args={[0.8, 0.3, 0.2]} />
         <meshStandardMaterial color="#e8dcc8" transparent opacity={0.3} roughness={0.8} />
@@ -174,28 +237,11 @@ function PelvisOutline() {
   );
 }
 
-function PressureOverlay({ state }: { state: SimulationState }) {
-  const pressureNorm = state.bladderPressure / 120;
-  
-  return (
-    <mesh position={[0, 0.2, 0]}>
-      <sphereGeometry args={[0.5 + state.bladderVolume / state.maxCapacity * 0.8, 16, 16]} />
-      <meshBasicMaterial
-        color={pressureNorm < 0.33 ? '#0066ff' : pressureNorm < 0.66 ? '#ffaa00' : '#ff0000'}
-        transparent
-        opacity={0.08 + pressureNorm * 0.1}
-        wireframe
-      />
-    </mesh>
-  );
-}
-
 function BloodVessels() {
   const vesselsRef = useRef<THREE.Group>(null);
   
   useFrame(() => {
     if (vesselsRef.current) {
-      // Subtle pulsing of blood vessels
       const pulse = Math.sin(Date.now() * 0.004) * 0.01;
       vesselsRef.current.scale.setScalar(1 + pulse);
     }
@@ -203,7 +249,6 @@ function BloodVessels() {
 
   return (
     <group ref={vesselsRef}>
-      {/* Arteries around bladder */}
       <mesh position={[-0.6, 0.5, 0.3]} rotation={[0.3, 0.5, 0]}>
         <torusGeometry args={[0.4, 0.02, 8, 32, Math.PI]} />
         <meshStandardMaterial color="#cc2222" transparent opacity={0.6} />
@@ -212,7 +257,6 @@ function BloodVessels() {
         <torusGeometry args={[0.4, 0.02, 8, 32, Math.PI]} />
         <meshStandardMaterial color="#cc2222" transparent opacity={0.6} />
       </mesh>
-      {/* Veins */}
       <mesh position={[-0.5, -0.2, 0.4]} rotation={[0.2, 0.3, 0.1]}>
         <torusGeometry args={[0.3, 0.015, 8, 32, Math.PI * 0.8]} />
         <meshStandardMaterial color="#3344aa" transparent opacity={0.5} />
@@ -234,7 +278,6 @@ function NerveSignals({ state }: { state: SimulationState }) {
       nervesRef.current.children.forEach((child, i) => {
         const mesh = child as THREE.Mesh;
         const mat = mesh.material as THREE.MeshStandardMaterial;
-        // Nerves glow based on urge signal
         const flicker = Math.sin(Date.now() * 0.005 + i * 1.5) * 0.3 + 0.7;
         mat.emissiveIntensity = urgeNorm * flicker * 2;
         mat.opacity = 0.3 + urgeNorm * 0.5;
@@ -268,26 +311,59 @@ function NerveSignals({ state }: { state: SimulationState }) {
 function KidneyConnectors() {
   return (
     <group>
-      {/* Left ureter */}
       <mesh position={[-0.8, 1.0, 0]} rotation={[0, 0, 0.3]}>
         <cylinderGeometry args={[0.03, 0.04, 1.2, 8]} />
-        <meshPhysicalMaterial color="#cc8866" transparent opacity={0.5} roughness={0.6} />
+        <meshStandardMaterial color="#cc8866" transparent opacity={0.5} roughness={0.6} />
       </mesh>
-      {/* Right ureter */}
       <mesh position={[0.8, 1.0, 0]} rotation={[0, 0, -0.3]}>
         <cylinderGeometry args={[0.03, 0.04, 1.2, 8]} />
-        <meshPhysicalMaterial color="#cc8866" transparent opacity={0.5} roughness={0.6} />
+        <meshStandardMaterial color="#cc8866" transparent opacity={0.5} roughness={0.6} />
       </mesh>
-      {/* Kidney shapes */}
       <mesh position={[-1.0, 1.7, 0]} scale={[0.3, 0.4, 0.2]}>
         <sphereGeometry args={[1, 16, 16]} />
-        <meshPhysicalMaterial color="#8b4513" transparent opacity={0.4} roughness={0.7} />
+        <meshStandardMaterial color="#8b4513" transparent opacity={0.4} roughness={0.7} />
       </mesh>
       <mesh position={[1.0, 1.7, 0]} scale={[0.3, 0.4, 0.2]}>
         <sphereGeometry args={[1, 16, 16]} />
-        <meshPhysicalMaterial color="#8b4513" transparent opacity={0.4} roughness={0.7} />
+        <meshStandardMaterial color="#8b4513" transparent opacity={0.4} roughness={0.7} />
       </mesh>
     </group>
+  );
+}
+
+function PressureOverlay({ state }: { state: SimulationState }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  useFrame(() => {
+    const pressureNorm = state.bladderPressure / 120;
+    if (meshRef.current) {
+      const radius = 0.5 + (state.bladderVolume / state.maxCapacity) * 0.8;
+      meshRef.current.scale.setScalar(radius);
+    }
+    if (matRef.current) {
+      if (pressureNorm < 0.33) {
+        matRef.current.color.setRGB(0, 0.4, 1);
+      } else if (pressureNorm < 0.66) {
+        matRef.current.color.setRGB(1, 0.67, 0);
+      } else {
+        matRef.current.color.setRGB(1, 0, 0);
+      }
+      matRef.current.opacity = 0.08 + pressureNorm * 0.1;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0.2, 0]}>
+      <sphereGeometry args={[1, 16, 16]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color="#0066ff"
+        transparent
+        opacity={0.1}
+        wireframe
+      />
+    </mesh>
   );
 }
 
@@ -300,23 +376,15 @@ function Scene({ state }: { state: SimulationState }) {
       <pointLight position={[0, 2, 0]} intensity={0.3} color="#6688ff" />
       <pointLight position={[-2, 1, 1]} intensity={0.2} color="#ff4444" />
       
+      <SimpleOrbitControls />
       <PelvisOutline />
       <KidneyConnectors />
       <BloodVessels />
       <NerveSignals state={state} />
       <BladderMesh state={state} />
-      <UreterDrip state={state} />
+      <UreterDrip />
       <Urethra state={state} />
       <PressureOverlay state={state} />
-      
-      <OrbitControls 
-        enablePan={true}
-        enableZoom={true}
-        minDistance={2}
-        maxDistance={8}
-        autoRotate={false}
-      />
-      <Environment preset="studio" />
     </>
   );
 }
@@ -332,24 +400,20 @@ export default function MicroView({ state }: { state: SimulationState }) {
         <Scene state={state} />
       </Canvas>
       
-      {/* Pressure overlay */}
       <div 
         className="absolute inset-0 pointer-events-none transition-colors duration-1000"
         style={{ backgroundColor: overlayColor }}
       />
       
-      {/* Vignette effect */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)'
       }} />
       
-      {/* Labels */}
-      <div className="absolute top-2 left-2 text-xs font-mono text-gray-400 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">
+      <div className="absolute top-2 left-2 text-xs font-mono text-gray-400 bg-black/60 px-2 py-1 rounded">
         🔬 MICRO VIEW — Coronal Cross-Section
       </div>
       
-      {/* Volume indicator */}
-      <div className="absolute top-2 right-2 text-xs font-mono bg-black/60 px-2 py-1 rounded backdrop-blur-sm">
+      <div className="absolute top-2 right-2 text-xs font-mono bg-black/60 px-2 py-1 rounded">
         <span className="text-gray-400">VOL: </span>
         <span style={{ color: fillPercent > 100 ? '#ff4444' : fillPercent > 80 ? '#ffaa00' : '#4488ff' }}>
           {state.bladderVolume.toFixed(0)}ml
@@ -357,17 +421,15 @@ export default function MicroView({ state }: { state: SimulationState }) {
         <span className="text-gray-500"> / {state.maxCapacity.toFixed(0)}ml</span>
       </div>
       
-      {/* Bottom info */}
-      <div className="absolute bottom-2 left-2 text-xs font-mono text-gray-400 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">
+      <div className="absolute bottom-2 left-2 text-xs font-mono text-gray-400 bg-black/60 px-2 py-1 rounded">
         P: {state.bladderPressure.toFixed(1)} cmH₂O | Nerves: {state.nerveSensitivity.toFixed(0)}%
       </div>
       
-      <div className="absolute bottom-2 right-2 text-xs font-mono bg-black/60 px-2 py-1.5 rounded backdrop-blur-sm"
+      <div className="absolute bottom-2 right-2 text-xs font-mono bg-black/60 px-2 py-1.5 rounded"
         style={{ color: pressureNorm < 0.33 ? '#4488ff' : pressureNorm < 0.66 ? '#ffaa00' : '#ff4444' }}>
         {pressureNorm < 0.33 ? '● RELAXED' : pressureNorm < 0.66 ? '● BUILDING' : '● CRITICAL'}
       </div>
 
-      {/* Critical flash */}
       {pressureNorm > 0.9 && (
         <div className="absolute inset-0 pointer-events-none border-2 border-red-500/30 rounded-lg animate-pulse" />
       )}
