@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState } from '../types';
 
 const INITIAL_STATE: SimulationState = {
-  simTime: 8 * 3600, // Start at 8:00 AM
+  simTime: 8 * 3600,
   timeSpeed: 1,
   isPaused: false,
   dayNumber: 1,
@@ -39,102 +39,124 @@ const INITIAL_STATE: SimulationState = {
   desensitizationLevel: 0,
 };
 
+interface PlayerOverrides {
+  urgeSignal: boolean;
+  distractionLevel: boolean;
+  location: boolean;
+  posture: boolean;
+  temperature: boolean;
+  fillRate: boolean;
+}
+
 export function useSimulation() {
   const [state, setState] = useState<SimulationState>(INITIAL_STATE);
+  const [overrides, setOverrides] = useState<PlayerOverrides>({
+    urgeSignal: false,
+    distractionLevel: false,
+    location: false,
+    posture: false,
+    temperature: false,
+    fillRate: false,
+  });
+  const overridesRef = useRef<PlayerOverrides>(overrides);
+  overridesRef.current = overrides;
+  
   const lastUpdateRef = useRef<number>(Date.now());
   const animFrameRef = useRef<number>(0);
+  
+  // Track pending drink volume to add over time
+  const pendingDrinkRef = useRef<{ volume: number; startTime: number; duration: number } | null>(null);
 
   const calculatePressure = useCallback((volume: number, maxCap: number) => {
     const ratio = volume / maxCap;
-    // Pressure curve: starts low, exponential increase near capacity
     return Math.min(120, 5 + Math.pow(ratio, 2.5) * 100);
   }, []);
 
   const calculateUrgeSignal = useCallback((pressure: number, sensitivity: number, distraction: number, fluidProps?: typeof FLUID_PROPERTIES.water) => {
     let baseUrge = (pressure / 120) * 100;
     baseUrge *= (sensitivity / 100);
-    // Distraction suppresses urge perception
-    const distractionSuppression = 1 - (distraction / 200); // Max 50% suppression
+    const distractionSuppression = 1 - (distraction / 200);
     baseUrge *= distractionSuppression;
     if (fluidProps?.urgeMultiplier) baseUrge *= fluidProps.urgeMultiplier;
     return Math.min(120, Math.max(0, baseUrge));
   }, []);
 
-  const updateAI = useCallback((s: SimulationState, dt: number): SimulationState => {
+  const updateAI = useCallback((s: SimulationState, dt: number, playerOverrides: PlayerOverrides): SimulationState => {
     const newState = { ...s };
     const hour = (s.simTime / 3600) % 24;
 
-    // Sleep logic
+    // Sleep logic (always applies)
     if (hour >= 23 || hour < 6) {
       if (!s.isSleeping) {
         newState.isSleeping = true;
         newState.aiState = 'sleeping';
         newState.cognitiveState = 'sleeping';
-        newState.posture = 'lying_down';
+        if (!playerOverrides.posture) {
+          newState.posture = 'lying_down';
+        }
       }
     } else if (s.isSleeping && hour >= 6 && hour < 23) {
       newState.isSleeping = false;
     }
 
-    // AI behavior based on time and state
+    // AI behavior - only if NOT manually overridden
     if (!s.isSleeping) {
       const urgePercent = s.urgeSignal;
       
       if (s.location === 'bathroom' && s.urethralValveState === 'release') {
         newState.aiState = 'voiding';
       } else if (urgePercent > 90) {
-        // Desperate - searching for bathroom
         newState.aiState = 'searching_bathroom';
         newState.cognitiveState = 'desperate';
-        newState.location = 'home'; // Try to get to bathroom
-        if (s.posture === 'standing') {
+        // Only auto-move to bathroom if location not overridden
+        if (!playerOverrides.location) {
+          newState.location = 'home';
+        }
+        if (!playerOverrides.posture && s.posture === 'standing') {
           newState.posture = Math.random() > 0.5 ? 'walking' : 'standing';
         }
       } else if (urgePercent > 60) {
-        // Holding behavior
         const behaviors: AIState[] = ['holding', 'crossing_legs', 'shifting_weight', 'pacing'];
         if (Math.random() < 0.01 * dt) {
           newState.aiState = behaviors[Math.floor(Math.random() * behaviors.length)];
         }
         newState.cognitiveState = 'desperate';
-      } else if (hour >= 9 && hour < 12) {
-        // Morning work
-        newState.aiState = 'working';
-        newState.cognitiveState = 'focused';
-        newState.distractionLevel = 70;
-        newState.posture = 'sitting';
-        newState.location = 'office';
-      } else if (hour >= 12 && hour < 13) {
-        // Lunch
-        newState.aiState = 'idle';
-        newState.location = 'kitchen';
-        newState.posture = 'standing';
-      } else if (hour >= 13 && hour < 17) {
-        // Afternoon - meeting
-        newState.aiState = 'in_meeting';
-        newState.cognitiveState = 'focused';
-        newState.distractionLevel = 80;
-        newState.posture = 'sitting';
-        newState.location = 'meeting_room';
-      } else if (hour >= 17 && hour < 18) {
-        // Commute
-        newState.aiState = 'commuting';
-        newState.posture = 'sitting';
-        newState.location = 'car';
-        newState.distractionLevel = 40;
-      } else if (hour >= 20 && hour < 23) {
-        // Evening - gaming/relaxing
-        newState.aiState = 'gaming';
-        newState.cognitiveState = 'distracted';
-        newState.distractionLevel = 85;
-        newState.posture = 'sitting';
-        newState.location = 'home';
       } else {
-        newState.aiState = 'idle';
-        newState.cognitiveState = 'relaxed';
-        newState.distractionLevel = 20;
-        newState.posture = 'standing';
-        newState.location = 'home';
+        // Time-based AI routine - only if NOT overridden
+        if (hour >= 9 && hour < 12) {
+          newState.aiState = 'working';
+          newState.cognitiveState = 'focused';
+          if (!playerOverrides.distractionLevel) newState.distractionLevel = 70;
+          if (!playerOverrides.posture) newState.posture = 'sitting';
+          if (!playerOverrides.location) newState.location = 'office';
+        } else if (hour >= 12 && hour < 13) {
+          newState.aiState = 'idle';
+          if (!playerOverrides.location) newState.location = 'kitchen';
+          if (!playerOverrides.posture) newState.posture = 'standing';
+        } else if (hour >= 13 && hour < 17) {
+          newState.aiState = 'in_meeting';
+          newState.cognitiveState = 'focused';
+          if (!playerOverrides.distractionLevel) newState.distractionLevel = 80;
+          if (!playerOverrides.posture) newState.posture = 'sitting';
+          if (!playerOverrides.location) newState.location = 'meeting_room';
+        } else if (hour >= 17 && hour < 18) {
+          newState.aiState = 'commuting';
+          if (!playerOverrides.posture) newState.posture = 'sitting';
+          if (!playerOverrides.location) newState.location = 'car';
+          if (!playerOverrides.distractionLevel) newState.distractionLevel = 40;
+        } else if (hour >= 20 && hour < 23) {
+          newState.aiState = 'gaming';
+          newState.cognitiveState = 'distracted';
+          if (!playerOverrides.distractionLevel) newState.distractionLevel = 85;
+          if (!playerOverrides.posture) newState.posture = 'sitting';
+          if (!playerOverrides.location) newState.location = 'home';
+        } else {
+          newState.aiState = 'idle';
+          newState.cognitiveState = 'relaxed';
+          if (!playerOverrides.distractionLevel) newState.distractionLevel = 20;
+          if (!playerOverrides.posture) newState.posture = 'standing';
+          if (!playerOverrides.location) newState.location = 'home';
+        }
       }
 
       // Random drink events
@@ -153,13 +175,13 @@ export function useSimulation() {
 
   const tick = useCallback(() => {
     const now = Date.now();
-    const realDt = (now - lastUpdateRef.current) / 1000; // real seconds elapsed
+    const realDt = (now - lastUpdateRef.current) / 1000;
     lastUpdateRef.current = now;
 
     setState(prev => {
       if (prev.isPaused) return prev;
 
-      const simDt = realDt * prev.timeSpeed; // simulation seconds elapsed
+      const simDt = realDt * prev.timeSpeed;
       const simMinutes = simDt / 60;
 
       let newState = { ...prev };
@@ -171,17 +193,35 @@ export function useSimulation() {
         newState.dayNumber += 1;
       }
 
+      // Process pending drink (gradual filling)
+      if (pendingDrinkRef.current) {
+        const drink = pendingDrinkRef.current;
+        const elapsed = newState.simTime - drink.startTime;
+        const progress = Math.min(1, elapsed / drink.duration);
+        
+        if (progress < 1) {
+          // Add volume gradually
+          const volumeThisTick = (drink.volume / drink.duration) * simDt;
+          if (newState.urethralValveState !== 'release') {
+            newState.bladderVolume = Math.min(newState.maxCapacity * 1.2, newState.bladderVolume + volumeThisTick);
+          }
+        } else {
+          // Drink finished
+          pendingDrinkRef.current = null;
+        }
+      }
+
       // Calculate effective fill rate
       let effectiveFillRate = newState.fillRate * newState.diureticMultiplier;
 
-      // Temperature effects
+      // Temperature effects (always apply based on current temperature)
       if (newState.temperature < 60) {
-        effectiveFillRate *= 1.3; // Cold diuresis
+        effectiveFillRate *= 1.3;
       } else if (newState.temperature > 85) {
-        effectiveFillRate *= 0.7; // Sweating reduces fill
+        effectiveFillRate *= 0.7;
       }
 
-      // Fill bladder
+      // Fill bladder (from kidneys, not drinks)
       if (newState.urethralValveState !== 'release') {
         const addedVolume = effectiveFillRate * simMinutes;
         newState.bladderVolume = Math.min(newState.maxCapacity * 1.2, newState.bladderVolume + addedVolume);
@@ -213,14 +253,16 @@ export function useSimulation() {
         newState.sphincterFatigue = Math.min(100, newState.sphincterFatigue + simDt * 0.1);
       }
 
-      // Urge signal calculation
-      const fluidProps = newState.lastDrinkType ? FLUID_PROPERTIES[newState.lastDrinkType] : undefined;
-      newState.urgeSignal = calculateUrgeSignal(
-        newState.bladderPressure,
-        newState.nerveSensitivity,
-        newState.distractionLevel,
-        fluidProps
-      );
+      // Urge signal calculation (only if NOT manually overridden)
+      if (!overridesRef.current.urgeSignal) {
+        const fluidProps = newState.lastDrinkType ? FLUID_PROPERTIES[newState.lastDrinkType] : undefined;
+        newState.urgeSignal = calculateUrgeSignal(
+          newState.bladderPressure,
+          newState.nerveSensitivity,
+          newState.distractionLevel,
+          fluidProps
+        );
+      }
 
       // False alarm override
       if (newState.falseAlarm) {
@@ -272,7 +314,7 @@ export function useSimulation() {
       newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0);
       newState.breathingRate = 14 + urgencyFactor * 12;
 
-      // Bladder training - repeated high holding
+      // Bladder training
       if (newState.bladderVolume > newState.maxCapacity * 0.9 && newState.urgeSignal > 100) {
         newState.trainingLevel = Math.min(5, newState.trainingLevel + simDt * 0.0001);
         newState.maxCapacity = Math.min(800, 500 + newState.trainingLevel * 60);
@@ -285,8 +327,8 @@ export function useSimulation() {
         newState.diureticMultiplier = 1;
       }
 
-      // Update AI
-      newState = updateAI(newState, simDt);
+      // Update AI (respects player overrides)
+      newState = updateAI(newState, simDt, overridesRef.current);
 
       return newState;
     });
@@ -300,8 +342,9 @@ export function useSimulation() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [tick]);
 
-  // Control functions
+  // Control functions with override flags
   const setUrgeSignal = useCallback((value: number) => {
+    setOverrides(prev => ({ ...prev, urgeSignal: true }));
     setState(prev => ({ ...prev, urgeSignal: value }));
   }, []);
 
@@ -318,6 +361,7 @@ export function useSimulation() {
   }, []);
 
   const setFillRate = useCallback((rate: number) => {
+    setOverrides(prev => ({ ...prev, fillRate: true }));
     setState(prev => ({ ...prev, fillRate: rate }));
   }, []);
 
@@ -330,10 +374,28 @@ export function useSimulation() {
   }, []);
 
   const resetSimulation = useCallback(() => {
+    setOverrides({
+      urgeSignal: false,
+      distractionLevel: false,
+      location: false,
+      posture: false,
+      temperature: false,
+      fillRate: false,
+    });
+    pendingDrinkRef.current = null;
     setState({ ...INITIAL_STATE, simTime: 8 * 3600 });
   }, []);
 
   const loadScenario = useCallback((overrides: Partial<SimulationState>) => {
+    setOverrides({
+      urgeSignal: false,
+      distractionLevel: false,
+      location: false,
+      posture: false,
+      temperature: false,
+      fillRate: false,
+    });
+    pendingDrinkRef.current = null;
     setState(prev => ({
       ...INITIAL_STATE,
       ...overrides,
@@ -342,6 +404,7 @@ export function useSimulation() {
   }, []);
 
   const setTemperature = useCallback((temp: number) => {
+    setOverrides(prev => ({ ...prev, temperature: true }));
     setState(prev => ({ ...prev, temperature: temp }));
   }, []);
 
@@ -350,14 +413,17 @@ export function useSimulation() {
   }, []);
 
   const setPosture = useCallback((posture: Posture) => {
+    setOverrides(prev => ({ ...prev, posture: true }));
     setState(prev => ({ ...prev, posture }));
   }, []);
 
   const setLocation = useCallback((location: LocationType) => {
+    setOverrides(prev => ({ ...prev, location: true }));
     setState(prev => ({ ...prev, location }));
   }, []);
 
   const setDistraction = useCallback((level: number) => {
+    setOverrides(prev => ({ ...prev, distractionLevel: true }));
     setState(prev => ({ ...prev, distractionLevel: level }));
   }, []);
 
@@ -366,6 +432,7 @@ export function useSimulation() {
   }, []);
 
   const manualReset = useCallback(() => {
+    pendingDrinkRef.current = null;
     setState(prev => ({
       ...prev,
       bladderVolume: 0,
@@ -380,23 +447,34 @@ export function useSimulation() {
       urethralValveState: 'closed',
       urethralFlow: 0,
     }));
+    setOverrides(prev => ({ ...prev, urgeSignal: false }));
   }, []);
 
+  // Give drink - adds volume gradually over 5 minutes of sim time
   const giveDrink = useCallback((type: FluidType) => {
+    const props = FLUID_PROPERTIES[type];
+    const volume = 250 * props.volumeMultiplier;
+    
     setState(prev => {
-      const props = FLUID_PROPERTIES[type];
+      // Set up gradual drink consumption (5 minutes = 300 seconds of sim time)
+      pendingDrinkRef.current = {
+        volume,
+        startTime: prev.simTime,
+        duration: 300, // 5 minutes of sim time
+      };
+      
       return {
         ...prev,
         lastDrinkType: type,
         lastDrinkTime: prev.simTime,
         diureticMultiplier: props.fillMultiplier,
-        bladderVolume: prev.bladderVolume + 250 * props.volumeMultiplier,
       };
     });
   }, []);
 
   return {
     state,
+    overrides,
     setUrgeSignal,
     setFalseAlarm,
     setSphincterLock,

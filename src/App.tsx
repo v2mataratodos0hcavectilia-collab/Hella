@@ -12,6 +12,7 @@ import { Scenario } from './types';
 function App() {
   const {
     state,
+    overrides,
     setUrgeSignal,
     setFalseAlarm,
     setSphincterLock,
@@ -136,6 +137,7 @@ function App() {
         <div className="w-80 shrink-0 overflow-hidden">
           <ControlPanel
             state={state}
+            overrides={overrides}
             setUrgeSignal={setUrgeSignal}
             setFalseAlarm={setFalseAlarm}
             setSphincterLock={setSphincterLock}

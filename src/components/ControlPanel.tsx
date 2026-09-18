@@ -1,7 +1,17 @@
 import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS } from '../types';
 
+interface PlayerOverrides {
+  urgeSignal: boolean;
+  distractionLevel: boolean;
+  location: boolean;
+  posture: boolean;
+  temperature: boolean;
+  fillRate: boolean;
+}
+
 interface ControlPanelProps {
   state: SimulationState;
+  overrides: PlayerOverrides;
   setUrgeSignal: (v: number) => void;
   setFalseAlarm: (v: boolean) => void;
   setSphincterLock: (v: boolean) => void;
@@ -22,6 +32,7 @@ interface ControlPanelProps {
 
 export default function ControlPanel({
   state,
+  overrides,
   setUrgeSignal,
   setFalseAlarm,
   setSphincterLock,
@@ -68,7 +79,7 @@ export default function ControlPanel({
       </Section>
 
       {/* Urge Signal Override */}
-      <Section title="🧠 URGE SIGNAL OVERRIDE">
+      <Section title="🧠 URGE SIGNAL OVERRIDE" locked={overrides.urgeSignal}>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <input
@@ -139,7 +150,7 @@ export default function ControlPanel({
       </Section>
 
       {/* Fill Rate */}
-      <Section title="🫘 KIDNEY FILL RATE">
+      <Section title="🫘 KIDNEY FILL RATE" locked={overrides.fillRate}>
         <div className="flex items-center gap-2">
           <input
             type="range"
@@ -176,10 +187,10 @@ export default function ControlPanel({
       </Section>
 
       {/* Environment */}
-      <Section title="🌡 ENVIRONMENT">
+      <Section title="🌡 ENVIRONMENT" locked={overrides.temperature || overrides.posture || overrides.location}>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Temp:</span>
+            <span className="text-xs text-gray-400">Temp{overrides.temperature && ' 🔒'}:</span>
             <input
               type="range"
               min="30"
@@ -192,6 +203,9 @@ export default function ControlPanel({
               {state.temperature}°F ({((state.temperature - 32) * 5/9).toFixed(0)}°C)
             </span>
           </div>
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-[10px] text-gray-500">Posture{overrides.posture && ' 🔒'}:</span>
+          </div>
           <div className="grid grid-cols-3 gap-1">
             {(['standing', 'sitting', 'walking', 'running', 'lying_down'] as Posture[]).map(p => (
               <button
@@ -202,6 +216,9 @@ export default function ControlPanel({
                 {p.replace('_', ' ')}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-1 mb-1 mt-2">
+            <span className="text-[10px] text-gray-500">Location{overrides.location && ' 🔒'}:</span>
           </div>
           <div className="grid grid-cols-4 gap-1">
             {(['home', 'office', 'car', 'bathroom', 'bedroom', 'kitchen', 'meeting_room', 'elevator'] as LocationType[]).map(loc => (
@@ -233,7 +250,7 @@ export default function ControlPanel({
       </Section>
 
       {/* Cognitive */}
-      <Section title="🧩 COGNITIVE STATE">
+      <Section title="🧩 COGNITIVE STATE" locked={overrides.distractionLevel}>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Distraction:</span>
           <input
@@ -282,10 +299,13 @@ export default function ControlPanel({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, locked }: { title: string; children: React.ReactNode; locked?: boolean }) {
   return (
-    <div className="border border-gray-700 rounded-lg p-2 bg-gray-800/50">
-      <h3 className="text-xs font-bold text-gray-300 mb-2 uppercase tracking-wider">{title}</h3>
+    <div className={`border rounded-lg p-2 ${locked ? 'border-amber-700/60 bg-amber-900/10' : 'border-gray-700 bg-gray-800/50'}`}>
+      <h3 className="text-xs font-bold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
+        {title}
+        {locked && <span className="text-[10px] text-amber-400 font-normal normal-case">🔒 manual</span>}
+      </h3>
       {children}
     </div>
   );
