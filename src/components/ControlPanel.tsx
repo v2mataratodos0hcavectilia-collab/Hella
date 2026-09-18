@@ -1,4 +1,4 @@
-import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS } from '../types';
+import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS, DrugType, DRUG_PROPERTIES } from '../types';
 
 interface PlayerOverrides {
   urgeSignal: boolean;
@@ -28,6 +28,7 @@ interface ControlPanelProps {
   setSleepWakeSignal: (v: boolean) => void;
   manualReset: () => void;
   giveDrink: (type: FluidType) => void;
+  giveDrug: (type: DrugType) => void;
   setTrainingSpeed: (v: number) => void;
   toggleFullBladderPreference: () => void;
 }
@@ -51,6 +52,7 @@ export default function ControlPanel({
   setSleepWakeSignal,
   manualReset,
   giveDrink,
+  giveDrug,
   setTrainingSpeed,
   toggleFullBladderPreference,
 }: ControlPanelProps) {
@@ -171,21 +173,73 @@ export default function ControlPanel({
 
       {/* Fluid Intake */}
       <Section title="🥤 FLUID INTAKE">
-        <div className="grid grid-cols-5 gap-1">
-          {(['water', 'coffee', 'tea', 'alcohol', 'soda', 'energy_drink', 'juice', 'milk', 'smoothie', 'hot_chocolate'] as const).map(type => (
+        <div className="grid grid-cols-7 gap-1">
+          {(['water', 'coffee', 'tea', 'alcohol', 'soda', 'energy_drink', 'juice', 'milk', 'smoothie', 'hot_chocolate', 'iced_coffee', 'sports_drink', 'coconut_water', 'herbal_tea'] as const).map(type => (
             <button
               key={type}
               onClick={() => giveDrink(type)}
               className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
             >
-              {type === 'water' ? '💧' : type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'alcohol' ? '🍺' : type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : type === 'juice' ? '🧃' : type === 'milk' ? '🥛' : type === 'smoothie' ? '🥤' : '🍫'}
-              <br />{type.replace('_', ' ')}
+              {type === 'water' ? '💧' : type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'alcohol' ? '🍺' : type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : type === 'juice' ? '🧃' : type === 'milk' ? '🥛' : type === 'smoothie' ? '🥤' : type === 'hot_chocolate' ? '🍫' : type === 'iced_coffee' ? '🧊' : type === 'sports_drink' ? '🏃' : type === 'coconut_water' ? '🥥' : '🌿'}
+              <br />{type.replace('_', ' ').substring(0, 6)}
             </button>
           ))}
         </div>
         {state.lastDrinkType && (
           <div className="text-xs text-gray-400 mt-1">
             Last: {state.lastDrinkType.replace('_', ' ')} ({state.diureticMultiplier.toFixed(1)}× fill)
+          </div>
+        )}
+      </Section>
+
+      {/* Drugs */}
+      <Section title="💊 DRUGS">
+        <div className="grid grid-cols-5 gap-1">
+          {(['caffeine', 'adderall', 'xanax', 'oxycontin', 'mdma', 'lsd', 'nicotine', 'blazex', 'serenol'] as const).map(type => {
+            const props = DRUG_PROPERTIES[type];
+            const doses = state.drugDoses[type] || 0;
+            const isActive = state.activeDrugs.some(d => d.type === type);
+            return (
+              <button
+                key={type}
+                onClick={() => giveDrug(type)}
+                className={`px-1 py-1.5 rounded text-xs ${
+                  isActive 
+                    ? 'bg-green-700 text-white' 
+                    : doses >= props.overdoseThreshold
+                    ? 'bg-red-900 text-red-300'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+                title={`${props.name}\n${props.category}\n${props.description}\n${props.addictive ? '⚠️ ADDICTIVE' : ''}\n${props.overdoseRisk ? `⚠️ OVERDOSE: ${props.overdoseThreshold}+ doses` : ''}`}
+              >
+                {type === 'caffeine' ? '☕' : type === 'adderall' ? '💊' : type === 'xanax' ? '💊' : type === 'oxycontin' ? '💊' : type === 'mdma' ? '🎭' : type === 'lsd' ? '🍄' : type === 'nicotine' ? '🚬' : type === 'blazex' ? '💧' : '😌'}
+                <br />{props.name.substring(0, 6)}
+                {doses > 0 && <div className="text-[9px] mt-0.5">×{doses}</div>}
+              </button>
+            );
+          })}
+        </div>
+        {state.activeDrugs.length > 0 && (
+          <div className="mt-2 space-y-1">
+            <div className="text-[10px] text-gray-500">Active:</div>
+            {state.activeDrugs.slice(0, 3).map((drug, i) => {
+              const props = DRUG_PROPERTIES[drug.type];
+              const remaining = Math.max(0, drug.duration - (state.simTime - drug.startTime));
+              const minutes = Math.floor(remaining / 60);
+              return (
+                <div key={i} className="text-[10px] text-green-400">
+                  {props.name} ({minutes}m left)
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {state.isOverdosing && (
+          <div className="mt-2 text-xs text-red-400 bg-red-900/30 p-2 rounded animate-pulse">
+            ⚠️ OVERDOSE: {state.overdoseDrug ? DRUG_PROPERTIES[state.overdoseDrug].name : 'Unknown'}
+            <div className="text-[10px] mt-1">
+              {state.overdoseDrug && DRUG_PROPERTIES[state.overdoseDrug].overdoseSymptoms}
+            </div>
           </div>
         )}
       </Section>
@@ -306,7 +360,7 @@ export default function ControlPanel({
           <input
             type="range"
             min="1"
-            max="30"
+            max="100"
             value={state.trainingSpeedMultiplier}
             onChange={(e) => setTrainingSpeed(Number(e.target.value))}
             className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
@@ -314,7 +368,7 @@ export default function ControlPanel({
           <span className="text-xs text-gray-300 w-10 text-right">{state.trainingSpeedMultiplier}×</span>
         </div>
         <div className="text-[10px] text-gray-500 mt-1">
-          1× = normal | 30× = extremely fast
+          1× = normal | 100× = maximum speed
         </div>
       </Section>
 

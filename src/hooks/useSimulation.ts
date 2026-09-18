@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost } from '../types';
+import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, DrugType, DRUG_PROPERTIES, ActiveDrug } from '../types';
 
 const INITIAL_STATE: SimulationState = {
   simTime: 8 * 3600,
@@ -43,6 +43,21 @@ const INITIAL_STATE: SimulationState = {
   isLiveStreaming: false,
   liveViewerCount: 0,
   liveStartTime: 0,
+  activeSocialTab: 'posts',
+  activeDrugs: [],
+  drugDoses: {
+    caffeine: 0,
+    adderall: 0,
+    xanax: 0,
+    oxycontin: 0,
+    mdma: 0,
+    lsd: 0,
+    nicotine: 0,
+    blazex: 0,
+    serenol: 0,
+  },
+  isOverdosing: false,
+  overdoseDrug: null,
 };
 
 interface PlayerOverrides {
@@ -203,7 +218,8 @@ export function useSimulation() {
       
       if (s.location === 'bathroom' && s.urethralValveState === 'release') {
         newState.aiState = 'voiding';
-      } else if (urgePercent > 90) {
+      } else if (urgePercent > 90 && !(s.fullBladderPreference && s.bladderVolume > s.maxCapacity * 0.7)) {
+        // Desperate - searching for bathroom (unless full bladder preference trait is active and she's full)
         newState.aiState = 'searching_bathroom';
         newState.cognitiveState = 'desperate';
         // Only auto-move to bathroom if location not overridden
@@ -213,6 +229,10 @@ export function useSimulation() {
         if (!playerOverrides.posture && s.posture === 'standing') {
           newState.posture = Math.random() > 0.5 ? 'walking' : 'standing';
         }
+      } else if (s.fullBladderPreference && s.bladderVolume > s.maxCapacity * 0.7) {
+        // Full bladder preference trait - extremely relaxed when full
+        newState.aiState = 'idle';
+        newState.cognitiveState = 'relaxed';
       } else if (urgePercent > 60) {
         const behaviors: AIState[] = ['holding', 'crossing_legs', 'shifting_weight', 'pacing'];
         if (Math.random() < 0.01 * dt) {
@@ -365,11 +385,15 @@ export function useSimulation() {
         if (newState.fullBladderPreference) {
           const fillRatio = newState.bladderVolume / newState.maxCapacity;
           if (fillRatio > 0.7) {
-            // Likes being full - reduce urge discomfort
-            newState.urgeSignal *= 0.5;
+            // Likes being full - extremely calm and relaxed
+            newState.urgeSignal *= 0.2; // Very low urge perception
+            newState.cognitiveState = 'relaxed';
+            newState.distractionLevel = Math.max(newState.distractionLevel, 80);
           } else if (fillRatio < 0.2) {
-            // Anxious when empty - increase urge signal artificially
+            // Anxious when empty - increased stress
             newState.urgeSignal = Math.max(newState.urgeSignal, 60);
+            newState.heartRate += 20; // Anxiety increases heart rate
+            newState.breathingRate += 5; // Anxiety increases breathing
           }
         }
       }
@@ -419,15 +443,84 @@ export function useSimulation() {
         newState.urethralFlow = 0;
       }
 
+      // Process active drugs
+      newState.activeDrugs = newState.activeDrugs.filter(drug => {
+        const elapsed = newState.simTime - drug.startTime;
+        return elapsed < drug.duration;
+      });
+
+      // Apply drug effects
+      let totalDrugHeartRate = 0;
+      let totalDrugBreathing = 0;
+      let totalDrugSphincterRelaxation = 0;
+      let totalDrugFillMultiplier = 1;
+      let totalDrugUrgeMultiplier = 1;
+      let anyDrugSuppressesUrge = false;
+
+      newState.activeDrugs.forEach(drug => {
+        const props = DRUG_PROPERTIES[drug.type];
+        const progress = (newState.simTime - drug.startTime) / drug.duration;
+        const intensity = progress < 0.1 ? progress * 10 : progress > 0.9 ? (1 - progress) * 10 : 1;
+        
+        totalDrugHeartRate += props.heartRateBonus * intensity;
+        totalDrugBreathing += props.breathingBonus * intensity;
+        totalDrugSphincterRelaxation += props.sphincterRelaxation * intensity;
+        totalDrugFillMultiplier *= (1 + (props.fillMultiplier - 1) * intensity);
+        totalDrugUrgeMultiplier *= (1 + (props.urgeMultiplier - 1) * intensity);
+        if (props.suppressesUrge) anyDrugSuppressesUrge = true;
+      });
+
+      // Apply drug effects to vitals
+      newState.heartRate += totalDrugHeartRate;
+      newState.breathingRate += totalDrugBreathing;
+      newState.sphincterFatigue = Math.min(100, newState.sphincterFatigue + totalDrugSphincterRelaxation * simDt * 0.1);
+
+      // Apply drug effects to fill rate
+      effectiveFillRate *= totalDrugFillMultiplier;
+
+      // Apply drug effects to urge
+      if (anyDrugSuppressesUrge) {
+        newState.urgeSignal *= totalDrugUrgeMultiplier;
+      }
+
+      // Check for overdose
+      newState.isOverdosing = false;
+      newState.overdoseDrug = null;
+      Object.entries(newState.drugDoses).forEach(([drugType, doses]) => {
+        const props = DRUG_PROPERTIES[drugType as DrugType];
+        if (props.overdoseRisk && doses >= props.overdoseThreshold) {
+          newState.isOverdosing = true;
+          newState.overdoseDrug = drugType as DrugType;
+          newState.heartRate += 50;
+          newState.breathingRate += 10;
+        }
+      });
+
       // Heart rate and breathing
       const urgencyFactor = newState.urgeSignal / 100;
-      newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0);
-      newState.breathingRate = 14 + urgencyFactor * 12;
+      newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0) + totalDrugHeartRate;
+      newState.breathingRate = 14 + urgencyFactor * 12 + totalDrugBreathing;
 
-      // Bladder training (faster with speed multiplier, rounded to hundreds)
+      // Full bladder preference trait effects on vitals
+      if (newState.fullBladderPreference) {
+        const fillRatio = newState.bladderVolume / newState.maxCapacity;
+        if (fillRatio > 0.7) {
+          // Calm when full
+          newState.heartRate -= 10;
+          newState.breathingRate -= 3;
+        } else if (fillRatio < 0.2) {
+          // Anxious when empty
+          newState.heartRate += 20;
+          newState.breathingRate += 5;
+        }
+      }
+
+      // Bladder training (faster with speed multiplier, rounded to hundredths)
       if (newState.bladderVolume > newState.maxCapacity * 0.9 && newState.urgeSignal > 100) {
         const trainingRate = 0.0001 * newState.trainingSpeedMultiplier;
-        newState.trainingLevel = Math.min(5, newState.trainingLevel + simDt * trainingRate);
+        const rawLevel = newState.trainingLevel + simDt * trainingRate;
+        // Round to nearest hundredth
+        newState.trainingLevel = Math.min(5, Math.round(rawLevel * 100) / 100);
         // Round maxCapacity to nearest 100
         const rawCapacity = 500 + newState.trainingLevel * 60;
         newState.maxCapacity = Math.min(800, Math.round(rawCapacity / 100) * 100);
@@ -621,6 +714,33 @@ export function useSimulation() {
     setState(prev => ({ ...prev, fullBladderPreference: !prev.fullBladderPreference }));
   }, []);
 
+  const giveDrug = useCallback((type: DrugType) => {
+    setState(prev => {
+      const props = DRUG_PROPERTIES[type];
+      const newDose = (prev.drugDoses[type] || 0) + 1;
+      
+      const newDrug: ActiveDrug = {
+        type,
+        startTime: prev.simTime,
+        duration: props.duration,
+        dose: newDose,
+      };
+
+      return {
+        ...prev,
+        activeDrugs: [...prev.activeDrugs, newDrug],
+        drugDoses: {
+          ...prev.drugDoses,
+          [type]: newDose,
+        },
+      };
+    });
+  }, []);
+
+  const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore') => {
+    setState(prev => ({ ...prev, activeSocialTab: tab }));
+  }, []);
+
   return {
     state,
     overrides,
@@ -641,7 +761,9 @@ export function useSimulation() {
     setSleepWakeSignal,
     manualReset,
     giveDrink,
+    giveDrug,
     setTrainingSpeed,
     toggleFullBladderPreference,
+    setActiveSocialTab,
   };
 }

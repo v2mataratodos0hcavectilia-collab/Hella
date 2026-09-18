@@ -3,65 +3,127 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SimulationState } from '../types';
 
-function Heart({ heartRate, urgencyFactor }: { heartRate: number; urgencyFactor: number }) {
+function AnatomicalHeart({ heartRate, urgencyFactor }: { heartRate: number; urgencyFactor: number }) {
   const heartRef = useRef<THREE.Group>(null);
-  const scaleRef = useRef(1);
+  const ventricleLeftRef = useRef<THREE.Mesh>(null);
+  const ventricleRightRef = useRef<THREE.Mesh>(null);
+  const atriumLeftRef = useRef<THREE.Mesh>(null);
+  const atriumRightRef = useRef<THREE.Mesh>(null);
 
   useFrame(() => {
     if (heartRef.current) {
       // Heartbeat animation
-      const beatInterval = 60 / heartRate; // seconds per beat
+      const beatInterval = 60 / heartRate;
       const time = Date.now() * 0.001;
       const beatPhase = (time % beatInterval) / beatInterval;
       
-      // Systole (contraction) and diastole (relaxation)
+      // Systole and diastole
       let scale = 1;
       if (beatPhase < 0.1) {
-        // Rapid contraction
-        scale = 1 - beatPhase * 2;
+        // Atrial contraction
+        scale = 1.05;
+      } else if (beatPhase < 0.15) {
+        // Ventricular contraction
+        scale = 0.9;
       } else if (beatPhase < 0.3) {
         // Relaxation
-        scale = 0.8 + (beatPhase - 0.1) * 1;
-      } else {
-        // Rest
-        scale = 1;
+        scale = 0.9 + (beatPhase - 0.15) * 0.67;
       }
       
-      scaleRef.current = scale;
       heartRef.current.scale.setScalar(scale);
-      
-      // Subtle rotation
-      heartRef.current.rotation.y = Math.sin(time * 0.2) * 0.1;
+      heartRef.current.rotation.y = Math.sin(time * 0.3) * 0.05;
+    }
+
+    // Animate individual chambers
+    const beatInterval = 60 / heartRate;
+    const time = Date.now() * 0.001;
+    const beatPhase = (time % beatInterval) / beatInterval;
+
+    if (ventricleLeftRef.current && ventricleRightRef.current) {
+      const ventricleScale = beatPhase < 0.15 ? 0.85 : beatPhase < 0.3 ? 0.85 + (beatPhase - 0.15) * 1 : 1;
+      ventricleLeftRef.current.scale.setScalar(ventricleScale);
+      ventricleRightRef.current.scale.setScalar(ventricleScale);
+    }
+
+    if (atriumLeftRef.current && atriumRightRef.current) {
+      const atriumScale = beatPhase < 0.1 ? 1.1 : beatPhase < 0.15 ? 1.1 - (beatPhase - 0.1) * 2 : 1;
+      atriumLeftRef.current.scale.setScalar(atriumScale);
+      atriumRightRef.current.scale.setScalar(atriumScale);
     }
   });
 
   // Color based on urgency
-  const color = urgencyFactor > 0.8 ? '#ff3333' : urgencyFactor > 0.5 ? '#ff6666' : '#cc4444';
+  const baseColor = urgencyFactor > 0.8 ? '#cc2222' : urgencyFactor > 0.5 ? '#cc4444' : '#aa3333';
+  const darkColor = urgencyFactor > 0.8 ? '#881111' : urgencyFactor > 0.5 ? '#992222' : '#772222';
 
   return (
-    <group ref={heartRef}>
-      {/* Main heart shape using spheres */}
-      <mesh position={[-0.3, 0.2, 0]}>
+    <group ref={heartRef} rotation={[0.2, 0, 0.1]}>
+      {/* Left Ventricle (larger, forms the apex) */}
+      <mesh ref={ventricleLeftRef} position={[0.15, -0.3, 0]}>
         <sphereGeometry args={[0.5, 32, 32]} />
-        <meshStandardMaterial color={color} roughness={0.4} metalness={0.2} />
-      </mesh>
-      <mesh position={[0.3, 0.2, 0]}>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshStandardMaterial color={color} roughness={0.4} metalness={0.2} />
-      </mesh>
-      <mesh position={[0, -0.3, 0]}>
-        <coneGeometry args={[0.7, 1, 32]} />
-        <meshStandardMaterial color={color} roughness={0.4} metalness={0.2} />
+        <meshStandardMaterial color={baseColor} roughness={0.6} metalness={0.1} />
       </mesh>
       
-      {/* Arteries */}
-      <mesh position={[0, 0.6, 0]} rotation={[0, 0, 0.3]}>
-        <cylinderGeometry args={[0.08, 0.06, 0.4, 16]} />
-        <meshStandardMaterial color="#aa2222" roughness={0.6} />
+      {/* Right Ventricle */}
+      <mesh ref={ventricleRightRef} position={[-0.2, -0.2, 0.1]}>
+        <sphereGeometry args={[0.4, 32, 32]} />
+        <meshStandardMaterial color={baseColor} roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[-0.2, 0.5, 0]} rotation={[0, 0, -0.2]}>
-        <cylinderGeometry args={[0.06, 0.05, 0.3, 16]} />
-        <meshStandardMaterial color="#aa2222" roughness={0.6} />
+
+      {/* Left Atrium */}
+      <mesh ref={atriumLeftRef} position={[0.2, 0.3, -0.1]}>
+        <sphereGeometry args={[0.35, 32, 32]} />
+        <meshStandardMaterial color={darkColor} roughness={0.7} metalness={0.1} />
+      </mesh>
+
+      {/* Right Atrium */}
+      <mesh ref={atriumRightRef} position={[-0.25, 0.25, 0.05]}>
+        <sphereGeometry args={[0.3, 32, 32]} />
+        <meshStandardMaterial color={darkColor} roughness={0.7} metalness={0.1} />
+      </mesh>
+
+      {/* Aorta (large artery coming out) */}
+      <mesh position={[0, 0.5, 0]} rotation={[0, 0, -0.3]}>
+        <cylinderGeometry args={[0.12, 0.15, 0.6, 16]} />
+        <meshStandardMaterial color="#cc3333" roughness={0.5} />
+      </mesh>
+      
+      {/* Aortic arch */}
+      <mesh position={[0.15, 0.75, 0]} rotation={[0, 0, 0.5]}>
+        <torusGeometry args={[0.2, 0.1, 16, 32, Math.PI]} />
+        <meshStandardMaterial color="#cc3333" roughness={0.5} />
+      </mesh>
+
+      {/* Pulmonary artery */}
+      <mesh position={[-0.1, 0.45, 0.15]} rotation={[0.3, 0, 0.2]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.4, 16]} />
+        <meshStandardMaterial color="#6644aa" roughness={0.5} />
+      </mesh>
+
+      {/* Superior vena cava */}
+      <mesh position={[-0.3, 0.5, -0.1]} rotation={[0, 0, -0.2]}>
+        <cylinderGeometry args={[0.09, 0.1, 0.5, 16]} />
+        <meshStandardMaterial color="#4444aa" roughness={0.5} />
+      </mesh>
+
+      {/* Coronary arteries (surface detail) */}
+      <mesh position={[0.3, 0, 0.2]} rotation={[0.5, 0.3, 0]}>
+        <torusGeometry args={[0.25, 0.02, 8, 32, Math.PI * 0.7]} />
+        <meshStandardMaterial color="#ff4444" roughness={0.4} />
+      </mesh>
+      <mesh position={[-0.1, -0.1, 0.3]} rotation={[0.3, -0.2, 0.5]}>
+        <torusGeometry args={[0.2, 0.015, 8, 32, Math.PI * 0.6]} />
+        <meshStandardMaterial color="#ff4444" roughness={0.4} />
+      </mesh>
+
+      {/* Fat deposits (realistic detail) */}
+      <mesh position={[0.1, 0.1, 0.35]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial color="#ffcc88" roughness={0.8} transparent opacity={0.6} />
+      </mesh>
+      <mesh position={[-0.2, 0.15, 0.3]}>
+        <sphereGeometry args={[0.12, 16, 16]} />
+        <meshStandardMaterial color="#ffcc88" roughness={0.8} transparent opacity={0.6} />
       </mesh>
     </group>
   );
@@ -75,8 +137,9 @@ function Scene({ state }: { state: SimulationState }) {
       <ambientLight intensity={0.3} />
       <directionalLight position={[5, 5, 5]} intensity={0.8} />
       <pointLight position={[0, 0, 3]} intensity={0.5} color="#ff6666" />
+      <pointLight position={[-2, 2, 2]} intensity={0.3} color="#ffaaaa" />
       
-      <Heart heartRate={state.heartRate} urgencyFactor={urgencyFactor} />
+      <AnatomicalHeart heartRate={state.heartRate} urgencyFactor={urgencyFactor} />
     </>
   );
 }
@@ -101,7 +164,7 @@ export default function HeartView({ state }: HeartViewProps) {
 
       {/* Labels */}
       <div className="absolute top-2 left-2 text-xs font-mono text-gray-400 bg-black/60 px-2 py-1 rounded">
-        ❤️ HEART VIEW
+        ❤️ ANATOMICAL HEART VIEW
       </div>
 
       {/* Heart rate display */}
@@ -137,6 +200,13 @@ export default function HeartView({ state }: HeartViewProps) {
           />
         </svg>
       </div>
+
+      {/* Overdose warning */}
+      {state.isOverdosing && (
+        <div className="absolute top-12 left-2 text-xs font-mono text-red-400 bg-red-900/80 px-2 py-1 rounded animate-pulse">
+          ⚠️ OVERDOSE: {state.overdoseDrug}
+        </div>
+      )}
     </div>
   );
 }

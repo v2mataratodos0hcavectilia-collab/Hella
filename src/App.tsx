@@ -32,8 +32,10 @@ function App() {
     setSleepWakeSignal,
     manualReset,
     giveDrink,
+    giveDrug,
     setTrainingSpeed,
     toggleFullBladderPreference,
+    setActiveSocialTab,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -139,7 +141,7 @@ function App() {
               </div>
             ) : activeView === 'social' ? (
               <div className="flex-1 p-1">
-                <SocialMediaView state={state} />
+                <SocialMediaView state={state} setActiveTab={setActiveSocialTab} />
               </div>
             ) : (
               <div className="flex-1 p-1">
@@ -178,6 +180,7 @@ function App() {
             setSleepWakeSignal={setSleepWakeSignal}
             manualReset={manualReset}
             giveDrink={giveDrink}
+            giveDrug={giveDrug}
             setTrainingSpeed={setTrainingSpeed}
             toggleFullBladderPreference={toggleFullBladderPreference}
           />
