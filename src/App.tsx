@@ -43,7 +43,7 @@ function App() {
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'achievements'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
@@ -115,6 +115,12 @@ function App() {
             >
               ❤️ Heart
             </button>
+            <button
+              onClick={() => setActiveView('achievements')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'achievements' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🏆 Achievements
+            </button>
           </div>
           {/* Audio Toggle */}
           <button
@@ -155,9 +161,13 @@ function App() {
               <div className="flex-1 p-1">
                 <SocialMediaView state={state} setActiveTab={setActiveSocialTab} />
               </div>
-            ) : (
+            ) : activeView === 'heart' ? (
               <div className="flex-1 p-1">
                 <HeartView state={state} />
+              </div>
+            ) : (
+              <div className="flex-1 p-1">
+                <AchievementsPanel state={state} />
               </div>
             )}
           </div>
@@ -169,9 +179,6 @@ function App() {
 
           {/* Stats Bar */}
           <StatsPanel state={state} />
-
-          {/* Achievements Panel */}
-          <AchievementsPanel state={state} />
 
           {/* Player Account Panel (only show when on social view) */}
           {activeView === 'social' && state.activeSocialTab === 'personal' && (

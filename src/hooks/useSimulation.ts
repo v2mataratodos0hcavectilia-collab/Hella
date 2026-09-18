@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug } from '../types';
 import { DONATION_MESSAGES, MEGA_INFLUENCER_NAMES, FOLLOWER_SUGGESTION_TEMPLATES, POST_TEMPLATES } from '../socialContent';
+import { ACHIEVEMENTS } from '../achievements';
 
 const INITIAL_STATE: SimulationState = {
   simTime: 8 * 3600,
@@ -89,7 +90,7 @@ const INITIAL_STATE: SimulationState = {
   postComments: {},
   
   // Achievement tracking
-  lastVoidTime: 0,
+  lastVoidTime: 8 * 3600, // Set to initial simTime so hold timer starts at 0
   totalStreams: 0,
   followerCount: 0,
   totalDrugsTaken: 0,
@@ -463,6 +464,7 @@ export function useSimulation() {
           newState.urethralValveState = 'closed';
           newState.urethralFlow = 0;
           newState.bladderVolume = 0;
+          newState.lastVoidTime = newState.simTime; // Update last void time for achievements
         }
       } else {
         newState.urethralFlow = 0;
@@ -656,6 +658,18 @@ export function useSimulation() {
         }
       }
 
+      // Check achievements
+      ACHIEVEMENTS.forEach(achievement => {
+        // Only check if not already unlocked
+        if (!newState.unlockedAchievements.includes(achievement.id)) {
+          if (achievement.check(newState)) {
+            newState.unlockedAchievements = [...newState.unlockedAchievements, achievement.id];
+            newState.money += achievement.reward;
+            newState.totalEarned += achievement.reward;
+          }
+        }
+      });
+
       return newState;
     });
 
@@ -709,7 +723,7 @@ export function useSimulation() {
       fillRate: false,
     });
     pendingDrinkRef.current = null;
-    setState({ ...INITIAL_STATE, simTime: 8 * 3600 });
+    setState({ ...INITIAL_STATE, simTime: 8 * 3600, lastVoidTime: 8 * 3600 });
   }, []);
 
   const loadScenario = useCallback((overrides: Partial<SimulationState>) => {
@@ -722,10 +736,12 @@ export function useSimulation() {
       fillRate: false,
     });
     pendingDrinkRef.current = null;
+    const simTime = overrides.simTime || 8 * 3600;
     setState(prev => ({
       ...INITIAL_STATE,
       ...overrides,
-      simTime: overrides.simTime || 8 * 3600,
+      simTime,
+      lastVoidTime: overrides.lastVoidTime || simTime, // Set lastVoidTime to match simTime
     }));
   }, []);
 
@@ -771,6 +787,7 @@ export function useSimulation() {
       desensitizationLevel: 0,
       maxCapacity: 500,
       urethralValveState: 'closed',
+      lastVoidTime: prev.simTime, // Update last void time for achievements
       urethralFlow: 0,
     }));
     setOverrides(prev => ({ ...prev, urgeSignal: false }));
