@@ -44,6 +44,12 @@ const INITIAL_STATE: SimulationState = {
   liveViewerCount: 0,
   liveStartTime: 0,
   activeSocialTab: 'posts',
+  playerAccount: {
+    username: 'Player1',
+    posts: [],
+    comments: [],
+    following: ['Sarah_J'],
+  },
   activeDrugs: [],
   drugDoses: {
     caffeine: 0,
@@ -59,6 +65,10 @@ const INITIAL_STATE: SimulationState = {
     morphine: 0,
     ketamine: 0,
     ritalin: 0,
+    meth: 0,
+    cocaine: 0,
+    heroin: 0,
+    fentanyl: 0,
   },
   isOverdosing: false,
   overdoseDrug: null,
@@ -402,6 +412,17 @@ export function useSimulation() {
             newState.heartRate += 20; // Anxiety increases heart rate
             newState.breathingRate += 5; // Anxiety increases breathing
           }
+          
+          // HIGH URGE = CLEAR THINKING (trait-specific behavior)
+          // At high urges, she becomes focused and clear-headed instead of desperate
+          if (newState.urgeSignal > 80) {
+            newState.cognitiveState = 'focused';
+            newState.distractionLevel = Math.max(0, newState.distractionLevel - 20);
+            // Reduce desperate behaviors - calm holding instead of frantic searching
+            if (newState.aiState === 'searching_bathroom' || newState.aiState === 'pacing') {
+              newState.aiState = 'holding';
+            }
+          }
         }
       }
 
@@ -522,10 +543,14 @@ export function useSimulation() {
         }
       }
 
-      // Bladder training (faster with speed multiplier, rounded to hundredths)
-      if (newState.bladderVolume > newState.maxCapacity * 0.9 && newState.urgeSignal > 100) {
+      // Bladder training - dependent on bladder fullness, NOT urge signal
+      // Training starts at 100% capacity, faster when bulging (>100%)
+      const fillRatio = newState.bladderVolume / newState.maxCapacity;
+      if (fillRatio >= 1.0) {
         const trainingRate = 0.0001 * newState.trainingSpeedMultiplier;
-        const rawLevel = newState.trainingLevel + simDt * trainingRate;
+        // Bulging (>100%) trains 2x faster
+        const bulgingMultiplier = fillRatio > 1.0 ? 2.0 : 1.0;
+        const rawLevel = newState.trainingLevel + simDt * trainingRate * bulgingMultiplier;
         // Round to nearest hundredth
         newState.trainingLevel = Math.min(30, Math.round(rawLevel * 100) / 100);
         // Round maxCapacity to nearest 100

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { SimulationState } from '../types';
 
 interface AILogProps {
@@ -5,16 +6,27 @@ interface AILogProps {
 }
 
 export default function AILog({ state }: AILogProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const events = generateEvents(state);
 
   return (
-    <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-2 font-mono text-xs max-h-32 overflow-y-auto">
-      <div className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">AI Behavior Log</div>
-      {events.map((event, i) => (
-        <div key={i} className={`py-0.5 ${event.urgent ? 'text-red-400' : event.warning ? 'text-yellow-400' : 'text-gray-400'}`}>
-          <span className="text-gray-600">[{event.time}]</span> {event.message}
+    <div className="bg-gray-900/80 border border-gray-700 rounded-lg font-mono text-xs">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-2 py-1.5 flex items-center justify-between text-gray-500 text-[10px] uppercase tracking-wider hover:bg-gray-800/50 rounded-lg"
+      >
+        <span>AI Behavior Log</span>
+        <span>{isOpen ? '▼' : '▶'}</span>
+      </button>
+      {isOpen && (
+        <div className="px-2 pb-2 max-h-32 overflow-y-auto">
+          {events.map((event, i) => (
+            <div key={i} className={`py-0.5 ${event.urgent ? 'text-red-400' : event.warning ? 'text-yellow-400' : 'text-gray-400'}`}>
+              <span className="text-gray-600">[{event.time}]</span> {event.message}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

@@ -64,19 +64,33 @@ function SimpleOrbitControls({ target }: { target: [number, number, number] }) {
 
 function Character({ state }: { state: SimulationState }) {
   const groupRef = useRef<THREE.Group>(null);
-  const bodyRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (groupRef.current) {
       const t = Date.now() * 0.001;
       
+      // Reset transforms
+      groupRef.current.rotation.set(0, 0, 0);
+      groupRef.current.position.set(0, 0, 0);
+      
       switch (state.aiState) {
         case 'walking':
           groupRef.current.position.x = Math.sin(t * 0.5) * 2;
           groupRef.current.position.z = Math.cos(t * 0.5) * 2;
+          // Swing arms while walking
+          if (leftArmRef.current && rightArmRef.current) {
+            leftArmRef.current.rotation.x = Math.sin(t * 2) * 0.3;
+            rightArmRef.current.rotation.x = -Math.sin(t * 2) * 0.3;
+          }
           break;
         case 'pacing':
           groupRef.current.position.x = Math.sin(t * 1.5) * 1.5;
+          if (leftArmRef.current && rightArmRef.current) {
+            leftArmRef.current.rotation.x = Math.sin(t * 3) * 0.2;
+            rightArmRef.current.rotation.x = -Math.sin(t * 3) * 0.2;
+          }
           break;
         case 'shifting_weight':
           groupRef.current.rotation.z = Math.sin(t * 2) * 0.05;
@@ -85,6 +99,11 @@ function Character({ state }: { state: SimulationState }) {
         case 'holding':
           groupRef.current.rotation.z = Math.sin(t * 0.8) * 0.03;
           groupRef.current.position.y = Math.sin(t * 1.2) * 0.02;
+          // Arms close to body when holding
+          if (leftArmRef.current && rightArmRef.current) {
+            leftArmRef.current.rotation.z = 0.2;
+            rightArmRef.current.rotation.z = -0.2;
+          }
           break;
         case 'sleeping':
           groupRef.current.rotation.x = -Math.PI / 2;
@@ -95,52 +114,91 @@ function Character({ state }: { state: SimulationState }) {
         case 'gaming':
         case 'commuting':
           groupRef.current.position.y = -0.3;
+          // Arms resting
+          if (leftArmRef.current && rightArmRef.current) {
+            leftArmRef.current.rotation.x = -0.5;
+            rightArmRef.current.rotation.x = -0.5;
+          }
           break;
         default:
           groupRef.current.position.x = Math.sin(t * 0.2) * 0.5;
           groupRef.current.position.z = Math.cos(t * 0.2) * 0.5;
-          groupRef.current.rotation.x = 0;
-          groupRef.current.position.y = 0;
+          // Idle arm sway
+          if (leftArmRef.current && rightArmRef.current) {
+            leftArmRef.current.rotation.x = Math.sin(t * 0.5) * 0.1;
+            rightArmRef.current.rotation.x = -Math.sin(t * 0.5) * 0.1;
+          }
       }
-    }
-
-    if (bodyRef.current) {
+      
+      // Tremble when high urge
       if (state.urgeSignal > 80) {
         const tremble = Math.sin(Date.now() * 0.01) * 0.02 * (state.urgeSignal / 100);
-        bodyRef.current.position.x = tremble;
+        groupRef.current.position.x += tremble;
       }
     }
   });
 
+  // Determine clothing colors
+  const isSkirtOrDress = state.wardrobe === 'skirt' || state.wardrobe === 'dress';
+  const legColor = isSkirtOrDress ? '#f4c2a1' : '#2c3e50';
+  const topColor = state.wardrobe === 'dress' ? '#8e44ad' : state.wardrobe === 'overalls' || state.wardrobe === 'jumpsuit' ? '#34495e' : '#3498db';
+
   return (
     <group ref={groupRef}>
-      <mesh ref={bodyRef} position={[0, 0.8, 0]}>
-        <capsuleGeometry args={[0.2, 0.6, 8, 16]} />
-        <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 1.5, 0]}>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 1.6, -0.05]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#4a3728" roughness={0.9} />
-      </mesh>
-      <mesh position={[-0.1, 0.15, 0]}>
-        <capsuleGeometry args={[0.08, 0.5, 8, 8]} />
-        <meshStandardMaterial color={state.wardrobe === 'skirt' || state.wardrobe === 'dress' ? '#f4c2a1' : '#2c3e50'} roughness={0.7} />
-      </mesh>
-      <mesh position={[0.1, 0.15, 0]}>
-        <capsuleGeometry args={[0.08, 0.5, 8, 8]} />
-        <meshStandardMaterial color={state.wardrobe === 'skirt' || state.wardrobe === 'dress' ? '#f4c2a1' : '#2c3e50'} roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 0.9, 0]}>
-        <capsuleGeometry args={[0.22, 0.4, 8, 16]} />
-        <meshStandardMaterial 
-          color={state.wardrobe === 'dress' ? '#8e44ad' : '#3498db'} 
-          roughness={0.6} 
-        />
-      </mesh>
+      {/* Body/Torso - all parts are children of this group so they move together */}
+      <group>
+        {/* Torso */}
+        <mesh position={[0, 0.8, 0]}>
+          <capsuleGeometry args={[0.2, 0.6, 8, 16]} />
+          <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
+        </mesh>
+        
+        {/* Top clothing - attached to torso */}
+        <mesh position={[0, 0.9, 0]}>
+          <capsuleGeometry args={[0.22, 0.4, 8, 16]} />
+          <meshStandardMaterial color={topColor} roughness={0.6} />
+        </mesh>
+        
+        {/* Head */}
+        <mesh position={[0, 1.5, 0]}>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
+        </mesh>
+        
+        {/* Hair */}
+        <mesh position={[0, 1.6, -0.05]}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#4a3728" roughness={0.9} />
+        </mesh>
+        
+        {/* Left Arm - attached to body */}
+        <group ref={leftArmRef} position={[-0.25, 1.0, 0]}>
+          <mesh position={[0, -0.2, 0]}>
+            <capsuleGeometry args={[0.06, 0.4, 8, 8]} />
+            <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
+          </mesh>
+        </group>
+        
+        {/* Right Arm - attached to body */}
+        <group ref={rightArmRef} position={[0.25, 1.0, 0]}>
+          <mesh position={[0, -0.2, 0]}>
+            <capsuleGeometry args={[0.06, 0.4, 8, 8]} />
+            <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
+          </mesh>
+        </group>
+        
+        {/* Left Leg */}
+        <mesh position={[-0.1, 0.15, 0]}>
+          <capsuleGeometry args={[0.08, 0.5, 8, 8]} />
+          <meshStandardMaterial color={legColor} roughness={0.7} />
+        </mesh>
+        
+        {/* Right Leg */}
+        <mesh position={[0.1, 0.15, 0]}>
+          <capsuleGeometry args={[0.08, 0.5, 8, 8]} />
+          <meshStandardMaterial color={legColor} roughness={0.7} />
+        </mesh>
+      </group>
     </group>
   );
 }

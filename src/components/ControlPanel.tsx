@@ -374,6 +374,32 @@ export default function ControlPanel({
               })}
             </div>
           </div>
+          <div>
+            <div className="text-[10px] text-red-400 mb-1">⚠️ Addictive (High Risk)</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['meth', 'cocaine', 'heroin', 'fentanyl'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}\n⚠️ HIGHLY ADDICTIVE`}
+                  >
+                    {type === 'meth' ? '💎' : type === 'cocaine' ? '❄️' : type === 'heroin' ? '💉' : '⚡'}
+                    <br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         {state.activeDrugs.length > 0 && (
           <div className="mt-2 space-y-1 pt-2 border-t border-gray-700">

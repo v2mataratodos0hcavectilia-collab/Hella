@@ -67,7 +67,8 @@ export interface SimulationState {
   isLiveStreaming: boolean;
   liveViewerCount: number;
   liveStartTime: number;
-  activeSocialTab: 'live' | 'posts' | 'recommendations' | 'explore';
+  activeSocialTab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal';
+  playerAccount: PlayerAccount;
   
   // Drugs
   activeDrugs: ActiveDrug[];
@@ -93,6 +94,23 @@ export interface SocialMediaPost {
   isLive?: boolean;
   isFromUser?: boolean;
   replyTo?: string;
+  commentList?: SocialMediaComment[];
+}
+
+export interface SocialMediaComment {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: number;
+  likes: number;
+  isFromPlayer?: boolean;
+}
+
+export interface PlayerAccount {
+  username: string;
+  posts: SocialMediaPost[];
+  comments: SocialMediaComment[];
+  following: string[];
 }
 
 export type AIState = 
@@ -115,7 +133,7 @@ export type AIState =
 
 export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea';
 
-export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin';
+export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin' | 'meth' | 'cocaine' | 'heroin' | 'fentanyl';
 
 export interface DrugEffect {
   name: string;
@@ -379,6 +397,70 @@ export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
     duration: 2700,
     description: 'ADHD medication. Suppresses urge while increasing heart rate.',
     overdoseSymptoms: 'Agitation, hallucinations, cardiac arrest',
+  },
+  meth: {
+    name: 'Methamphetamine',
+    category: 'Addictive',
+    fillMultiplier: 0.9,
+    urgeMultiplier: 0.2,
+    heartRateBonus: 35,
+    breathingBonus: 6,
+    sphincterRelaxation: 0.15,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 3,
+    duration: 4800,
+    description: 'Powerful stimulant. Extreme heart rate, suppresses all bodily awareness.',
+    overdoseSymptoms: 'Hyperthermia, organ failure, death',
+  },
+  cocaine: {
+    name: 'Cocaine',
+    category: 'Addictive',
+    fillMultiplier: 1.1,
+    urgeMultiplier: 0.3,
+    heartRateBonus: 30,
+    breathingBonus: 5,
+    sphincterRelaxation: 0.1,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 4,
+    duration: 1800,
+    description: 'Short-acting stimulant. Intense but brief effects.',
+    overdoseSymptoms: 'Cardiac arrest, stroke, seizures',
+  },
+  heroin: {
+    name: 'Heroin',
+    category: 'Addictive',
+    fillMultiplier: 0.4,
+    urgeMultiplier: 0.05,
+    heartRateBonus: -25,
+    breathingBonus: -8,
+    sphincterRelaxation: 0.7,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 2,
+    duration: 3600,
+    description: 'Extremely addictive opioid. Near-total bodily suppression.',
+    overdoseSymptoms: 'Respiratory arrest, coma, death',
+  },
+  fentanyl: {
+    name: 'Fentanyl',
+    category: 'Addictive',
+    fillMultiplier: 0.3,
+    urgeMultiplier: 0.02,
+    heartRateBonus: -30,
+    breathingBonus: -10,
+    sphincterRelaxation: 0.8,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 1,
+    duration: 2400,
+    description: 'Synthetic opioid. Extremely dangerous even in small doses.',
+    overdoseSymptoms: 'Immediate respiratory failure, death',
   },
 };
 
