@@ -28,6 +28,8 @@ interface ControlPanelProps {
   setSleepWakeSignal: (v: boolean) => void;
   manualReset: () => void;
   giveDrink: (type: FluidType) => void;
+  setTrainingSpeed: (v: number) => void;
+  toggleFullBladderPreference: () => void;
 }
 
 export default function ControlPanel({
@@ -49,6 +51,8 @@ export default function ControlPanel({
   setSleepWakeSignal,
   manualReset,
   giveDrink,
+  setTrainingSpeed,
+  toggleFullBladderPreference,
 }: ControlPanelProps) {
   return (
     <div className="h-full overflow-y-auto bg-gray-900/95 border-l border-gray-700 p-3 space-y-4 text-sm font-mono">
@@ -168,20 +172,20 @@ export default function ControlPanel({
       {/* Fluid Intake */}
       <Section title="🥤 FLUID INTAKE">
         <div className="grid grid-cols-5 gap-1">
-          {(['water', 'coffee', 'tea', 'alcohol', 'soda'] as const).map(type => (
+          {(['water', 'coffee', 'tea', 'alcohol', 'soda', 'energy_drink', 'juice', 'milk', 'smoothie', 'hot_chocolate'] as const).map(type => (
             <button
               key={type}
               onClick={() => giveDrink(type)}
               className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
             >
-              {type === 'water' ? '💧' : type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'alcohol' ? '🍺' : '🥤'}
-              <br />{type}
+              {type === 'water' ? '💧' : type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'alcohol' ? '🍺' : type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : type === 'juice' ? '🧃' : type === 'milk' ? '🥛' : type === 'smoothie' ? '🥤' : '🍫'}
+              <br />{type.replace('_', ' ')}
             </button>
           ))}
         </div>
         {state.lastDrinkType && (
           <div className="text-xs text-gray-400 mt-1">
-            Last: {state.lastDrinkType} ({state.diureticMultiplier.toFixed(1)}× fill)
+            Last: {state.lastDrinkType.replace('_', ' ')} ({state.diureticMultiplier.toFixed(1)}× fill)
           </div>
         )}
       </Section>
@@ -294,6 +298,48 @@ export default function ControlPanel({
             Full Reset
           </button>
         </div>
+      </Section>
+
+      {/* Bladder Training Speed */}
+      <Section title="⚡ TRAINING SPEED">
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min="1"
+            max="30"
+            value={state.trainingSpeedMultiplier}
+            onChange={(e) => setTrainingSpeed(Number(e.target.value))}
+            className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+          />
+          <span className="text-xs text-gray-300 w-10 text-right">{state.trainingSpeedMultiplier}×</span>
+        </div>
+        <div className="text-[10px] text-gray-500 mt-1">
+          1× = normal | 30× = extremely fast
+        </div>
+      </Section>
+
+      {/* Traits */}
+      <Section title="✨ TRAITS">
+        <button
+          onClick={toggleFullBladderPreference}
+          className={`w-full px-2 py-2 rounded text-xs ${
+            state.fullBladderPreference 
+              ? 'bg-purple-700 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          {state.fullBladderPreference ? (
+            <>
+              <div className="font-bold">🔮 Full Bladder Preference: ON</div>
+              <div className="text-[10px] mt-1 opacity-80">Likes full bladder, anxious when empty</div>
+            </>
+          ) : (
+            <>
+              <div className="font-bold">🔮 Full Bladder Preference: OFF</div>
+              <div className="text-[10px] mt-1 opacity-80">Click to enable trait</div>
+            </>
+          )}
+        </button>
       </Section>
     </div>
   );

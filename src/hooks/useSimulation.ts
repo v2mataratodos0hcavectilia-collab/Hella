@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState } from '../types';
+import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost } from '../types';
 
 const INITIAL_STATE: SimulationState = {
   simTime: 8 * 3600,
@@ -37,6 +37,12 @@ const INITIAL_STATE: SimulationState = {
   canAccessBathroom: true,
   trainingLevel: 0,
   desensitizationLevel: 0,
+  trainingSpeedMultiplier: 1,
+  fullBladderPreference: false,
+  socialMediaPosts: [],
+  isLiveStreaming: false,
+  liveViewerCount: 0,
+  liveStartTime: 0,
 };
 
 interface PlayerOverrides {
@@ -46,6 +52,98 @@ interface PlayerOverrides {
   posture: boolean;
   temperature: boolean;
   fillRate: boolean;
+}
+
+function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
+  const fillRatio = state.bladderVolume / state.maxCapacity;
+  const posts = [
+    // Normal life posts
+    "Just finished work! Time to relax 🌙",
+    "Coffee break ☕ anyone?",
+    "Beautiful day outside! ☀️",
+    "Movie night vibes 🎬",
+    "Cooking something delicious tonight 🍳",
+    "Weekend plans? Anyone want to hang out?",
+    "Just got home, so tired 😴",
+    "Morning workout done! 💪",
+    "Reading a good book 📚",
+    "New playlist who dis 🎵",
+  ];
+  
+  const bladderPosts = [
+    "Okay my bladder is being SO dramatic right now 😩",
+    "Why do I always need to go when I'm busy?? 🙄",
+    "Holding it like it's an extreme sport 🏆",
+    "Note to self: don't drink 3 coffees in a row ☕☕☕",
+    "My bladder has its own agenda, I swear",
+    "Currently doing the potty dance 💃",
+    "Bladder: 1, Me: 0 😫",
+    "Someone invent a teleportation bathroom PLEASE 🚽✨",
+    "Crossing legs is my cardio today 🦵",
+    "The urge is real right now...",
+  ];
+  
+  const fullBladderPosts = [
+    "Okay I'm FULL but honestly? Kinda vibing with it 😌",
+    "My bladder is at max capacity and I'm weirdly okay with it",
+    "Full bladder energy is different, not gonna lie",
+    "I should go but... I'm kinda enjoying the pressure? 🤔",
+    "Living my best (full) life rn",
+  ];
+  
+  const emptyBladderPosts = [
+    "Why do I feel so empty and anxious?? 😟",
+    "My bladder feels weirdly empty and it's stressing me out",
+    "Anyone else get anxious when they don't feel full down there?",
+    "Need to drink something, feeling weird without that pressure",
+    "Empty bladder = empty soul? Is that a thing? 😅",
+  ];
+  
+  let content: string;
+  let author: string;
+  
+  // 70% chance it's from the user, 30% from others
+  if (Math.random() < 0.7) {
+    author = "Sarah_J";
+    
+    if (state.fullBladderPreference && fillRatio > 0.7) {
+      content = fullBladderPosts[Math.floor(Math.random() * fullBladderPosts.length)];
+    } else if (state.fullBladderPreference && fillRatio < 0.2) {
+      content = emptyBladderPosts[Math.floor(Math.random() * emptyBladderPosts.length)];
+    } else if (fillRatio > 0.7) {
+      content = bladderPosts[Math.floor(Math.random() * bladderPosts.length)];
+    } else {
+      content = posts[Math.floor(Math.random() * posts.length)];
+    }
+  } else {
+    // Other users
+    const otherUsers = ["CoffeeLover22", "NightOwl_", "FitnessFreak", "BookWorm99", "MusicVibes"];
+    author = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    
+    const otherPosts = [
+      "Anyone up for a chat? 💬",
+      "Just saw the cutest dog! 🐕",
+      "Monday motivation needed 😴",
+      "What's everyone watching lately?",
+      "Send memes pls 😂",
+      "Can't sleep, anyone else? 🌙",
+      "Coffee > Tea, fight me ☕",
+      "Weekend can't come soon enough!",
+      "Just finished a 5k! 🏃‍♀️",
+      "Who else is procrastinating? 🙋‍♀️",
+    ];
+    content = otherPosts[Math.floor(Math.random() * otherPosts.length)];
+  }
+  
+  return {
+    id: `post_${Date.now()}_${Math.random()}`,
+    author,
+    content,
+    timestamp: state.simTime,
+    likes: Math.floor(Math.random() * 100),
+    comments: Math.floor(Math.random() * 20),
+    isFromUser: author === "Sarah_J",
+  };
 }
 
 export function useSimulation() {
@@ -262,6 +360,18 @@ export function useSimulation() {
           newState.distractionLevel,
           fluidProps
         );
+        
+        // Full bladder preference trait: likes full bladder, anxious when empty
+        if (newState.fullBladderPreference) {
+          const fillRatio = newState.bladderVolume / newState.maxCapacity;
+          if (fillRatio > 0.7) {
+            // Likes being full - reduce urge discomfort
+            newState.urgeSignal *= 0.5;
+          } else if (fillRatio < 0.2) {
+            // Anxious when empty - increase urge signal artificially
+            newState.urgeSignal = Math.max(newState.urgeSignal, 60);
+          }
+        }
       }
 
       // False alarm override
@@ -314,11 +424,14 @@ export function useSimulation() {
       newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0);
       newState.breathingRate = 14 + urgencyFactor * 12;
 
-      // Bladder training
+      // Bladder training (faster with speed multiplier, rounded to hundreds)
       if (newState.bladderVolume > newState.maxCapacity * 0.9 && newState.urgeSignal > 100) {
-        newState.trainingLevel = Math.min(5, newState.trainingLevel + simDt * 0.0001);
-        newState.maxCapacity = Math.min(800, 500 + newState.trainingLevel * 60);
-        newState.desensitizationLevel = Math.min(100, newState.desensitizationLevel + simDt * 0.001);
+        const trainingRate = 0.0001 * newState.trainingSpeedMultiplier;
+        newState.trainingLevel = Math.min(5, newState.trainingLevel + simDt * trainingRate);
+        // Round maxCapacity to nearest 100
+        const rawCapacity = 500 + newState.trainingLevel * 60;
+        newState.maxCapacity = Math.min(800, Math.round(rawCapacity / 100) * 100);
+        newState.desensitizationLevel = Math.min(100, newState.desensitizationLevel + simDt * trainingRate * 10);
         newState.nerveSensitivity = Math.max(30, 100 - newState.desensitizationLevel * 0.7);
       }
 
@@ -329,6 +442,34 @@ export function useSimulation() {
 
       // Update AI (respects player overrides)
       newState = updateAI(newState, simDt, overridesRef.current);
+
+      // Social media activity
+      if (!newState.isSleeping) {
+        // Random chance to post based on activity level
+        const postChance = 0.0002 * simDt * newState.timeSpeed;
+        if (Math.random() < postChance && newState.socialMediaPosts.length < 50) {
+          const post = generateSocialMediaPost(newState);
+          newState.socialMediaPosts = [post, ...newState.socialMediaPosts].slice(0, 50);
+        }
+        
+        // Random chance to go live if bladder is very full
+        if (!newState.isLiveStreaming && newState.bladderVolume > newState.maxCapacity * 0.8 && Math.random() < 0.00005 * simDt * newState.timeSpeed) {
+          newState.isLiveStreaming = true;
+          newState.liveStartTime = newState.simTime;
+          newState.liveViewerCount = Math.floor(Math.random() * 50) + 10;
+        }
+        
+        // Update live stream
+        if (newState.isLiveStreaming) {
+          newState.liveViewerCount += Math.floor((Math.random() - 0.3) * 5);
+          newState.liveViewerCount = Math.max(5, newState.liveViewerCount);
+          
+          // End stream after 10-30 minutes sim time
+          if (newState.simTime - newState.liveStartTime > 600 + Math.random() * 1200) {
+            newState.isLiveStreaming = false;
+          }
+        }
+      }
 
       return newState;
     });
@@ -472,6 +613,14 @@ export function useSimulation() {
     });
   }, []);
 
+  const setTrainingSpeed = useCallback((speed: number) => {
+    setState(prev => ({ ...prev, trainingSpeedMultiplier: speed }));
+  }, []);
+
+  const toggleFullBladderPreference = useCallback(() => {
+    setState(prev => ({ ...prev, fullBladderPreference: !prev.fullBladderPreference }));
+  }, []);
+
   return {
     state,
     overrides,
@@ -492,5 +641,7 @@ export function useSimulation() {
     setSleepWakeSignal,
     manualReset,
     giveDrink,
+    setTrainingSpeed,
+    toggleFullBladderPreference,
   };
 }

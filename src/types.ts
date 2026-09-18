@@ -57,6 +57,28 @@ export interface SimulationState {
   // Training
   trainingLevel: number; // 0-5
   desensitizationLevel: number; // 0-100%
+  trainingSpeedMultiplier: number; // 1-30 (speed of bladder training)
+  
+  // Traits
+  fullBladderPreference: boolean; // likes full bladder, anxious when empty
+  
+  // Social media
+  socialMediaPosts: SocialMediaPost[];
+  isLiveStreaming: boolean;
+  liveViewerCount: number;
+  liveStartTime: number;
+}
+
+export interface SocialMediaPost {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: number;
+  likes: number;
+  comments: number;
+  isLive?: boolean;
+  isFromUser?: boolean;
+  replyTo?: string;
 }
 
 export type AIState = 
@@ -77,7 +99,7 @@ export type AIState =
   | 'gaming'
   | 'commuting';
 
-export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda';
+export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate';
 
 export type WardrobeType = 'skirt' | 'dress' | 'leggings' | 'jeans' | 'overalls' | 'jumpsuit';
 
@@ -107,6 +129,11 @@ export const FLUID_PROPERTIES: Record<FluidType, { fillMultiplier: number; urgeM
   tea: { fillMultiplier: 1.5, urgeMultiplier: 1.2, volumeMultiplier: 1, suppressesUrge: false, carbonationPressure: false },
   alcohol: { fillMultiplier: 1.8, urgeMultiplier: 0.5, volumeMultiplier: 1.5, suppressesUrge: true, carbonationPressure: false },
   soda: { fillMultiplier: 1.2, urgeMultiplier: 1.1, volumeMultiplier: 1, suppressesUrge: false, carbonationPressure: true },
+  energy_drink: { fillMultiplier: 1.6, urgeMultiplier: 1.4, volumeMultiplier: 1, suppressesUrge: false, carbonationPressure: true },
+  juice: { fillMultiplier: 1.1, urgeMultiplier: 1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  milk: { fillMultiplier: 0.9, urgeMultiplier: 0.9, volumeMultiplier: 1.2, suppressesUrge: false, carbonationPressure: false },
+  smoothie: { fillMultiplier: 1.0, urgeMultiplier: 1, volumeMultiplier: 1.3, suppressesUrge: false, carbonationPressure: false },
+  hot_chocolate: { fillMultiplier: 1.1, urgeMultiplier: 1.1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
 };
 
 export const TIME_SPEEDS = [1, 5, 15, 30, 40, 60, 120];

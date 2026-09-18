@@ -7,6 +7,8 @@ import ControlPanel from './components/ControlPanel';
 import StatsPanel from './components/StatsPanel';
 import ScenarioSelector from './components/ScenarioSelector';
 import AILog from './components/AILog';
+import SocialMediaView from './components/SocialMediaView';
+import HeartView from './components/HeartView';
 import { Scenario } from './types';
 
 function App() {
@@ -30,10 +32,12 @@ function App() {
     setSleepWakeSignal,
     manualReset,
     giveDrink,
+    setTrainingSpeed,
+    toggleFullBladderPreference,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
@@ -85,6 +89,18 @@ function App() {
             >
               ⬡ Split
             </button>
+            <button
+              onClick={() => setActiveView('social')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'social' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              📱 Social
+            </button>
+            <button
+              onClick={() => setActiveView('heart')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'heart' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              ❤️ Heart
+            </button>
           </div>
           {/* Audio Toggle */}
           <button
@@ -117,9 +133,17 @@ function App() {
               <div className="flex-1 p-1">
                 <MicroView state={state} />
               </div>
-            ) : (
+            ) : activeView === 'macro' ? (
               <div className="flex-1 p-1">
                 <MacroView state={state} />
+              </div>
+            ) : activeView === 'social' ? (
+              <div className="flex-1 p-1">
+                <SocialMediaView state={state} />
+              </div>
+            ) : (
+              <div className="flex-1 p-1">
+                <HeartView state={state} />
               </div>
             )}
           </div>
@@ -154,6 +178,8 @@ function App() {
             setSleepWakeSignal={setSleepWakeSignal}
             manualReset={manualReset}
             giveDrink={giveDrink}
+            setTrainingSpeed={setTrainingSpeed}
+            toggleFullBladderPreference={toggleFullBladderPreference}
           />
         </div>
       </div>
