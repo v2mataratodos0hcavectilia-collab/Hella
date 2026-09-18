@@ -75,6 +75,28 @@ export interface SimulationState {
   drugDoses: Record<DrugType, number>;
   isOverdosing: boolean;
   overdoseDrug: DrugType | null;
+  
+  // Economy
+  money: number;
+  totalEarned: number;
+  lastIncomeTime: number;
+  
+  // Achievements
+  unlockedAchievements: string[];
+  achievementProgress: Record<string, number>;
+  
+  // Enhanced social
+  followerSuggestions: FollowerSuggestion[];
+  liveDonations: Donation[];
+  postComments: Record<string, SocialMediaComment[]>;
+  
+  // Achievement tracking
+  lastVoidTime: number;
+  totalStreams: number;
+  followerCount: number;
+  totalDrugsTaken: number;
+  drugsTried: DrugType[];
+  overdosesSurvived: number;
 }
 
 export interface ActiveDrug {
@@ -111,6 +133,23 @@ export interface PlayerAccount {
   posts: SocialMediaPost[];
   comments: SocialMediaComment[];
   following: string[];
+}
+
+export interface FollowerSuggestion {
+  id: string;
+  follower: string;
+  suggestion: string;
+  timestamp: number;
+  responded?: boolean;
+}
+
+export interface Donation {
+  id: string;
+  viewer: string;
+  amount: number;
+  message: string;
+  timestamp: number;
+  isMegaInfluencer?: boolean;
 }
 
 export type AIState = 

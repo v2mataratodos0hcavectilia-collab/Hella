@@ -9,6 +9,8 @@ import ScenarioSelector from './components/ScenarioSelector';
 import AILog from './components/AILog';
 import SocialMediaView from './components/SocialMediaView';
 import HeartView from './components/HeartView';
+import AchievementsPanel from './components/AchievementsPanel';
+import PlayerAccountPanel from './components/PlayerAccountPanel';
 import { Scenario } from './types';
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
     setTrainingSpeed,
     toggleFullBladderPreference,
     setActiveSocialTab,
+    playerPost,
+    playerComment,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -53,6 +57,14 @@ function App() {
     initAudio();
     setAudioEnabled(true);
   }, [initAudio]);
+
+  const handlePlayerPost = useCallback((content: string) => {
+    playerPost(content);
+  }, [playerPost]);
+
+  const handlePlayerComment = useCallback((postId: string, content: string) => {
+    playerComment(postId, content);
+  }, [playerComment]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowHelp(false), 8000);
@@ -157,6 +169,18 @@ function App() {
 
           {/* Stats Bar */}
           <StatsPanel state={state} />
+
+          {/* Achievements Panel */}
+          <AchievementsPanel state={state} />
+
+          {/* Player Account Panel (only show when on social view) */}
+          {activeView === 'social' && state.activeSocialTab === 'personal' && (
+            <PlayerAccountPanel
+              state={state}
+              onPost={handlePlayerPost}
+              onComment={handlePlayerComment}
+            />
+          )}
         </div>
 
         {/* Control Panel */}

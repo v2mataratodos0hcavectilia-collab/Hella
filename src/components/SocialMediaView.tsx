@@ -3,7 +3,7 @@ import { SimulationState, DRUG_PROPERTIES, DrugType } from '../types';
 
 interface SocialMediaViewProps {
   state: SimulationState;
-  setActiveTab: (tab: 'live' | 'posts' | 'recommendations' | 'explore') => void;
+  setActiveTab: (tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal') => void;
 }
 
 export default function SocialMediaView({ state, setActiveTab }: SocialMediaViewProps) {
@@ -83,7 +83,7 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
 
       {/* Tab navigation */}
       <div className="flex border-b border-gray-700 bg-gray-900/50">
-        {(['live', 'posts', 'recommendations', 'explore'] as const).map(tab => (
+        {(['live', 'posts', 'recommendations', 'explore', 'personal'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -97,6 +97,7 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
             {tab === 'posts' && '📝 '}
             {tab === 'recommendations' && '⭐ '}
             {tab === 'explore' && '🔍 '}
+            {tab === 'personal' && '👤 '}
             {tab}
           </button>
         ))}

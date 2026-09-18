@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, DrugType, DRUG_PROPERTIES, ActiveDrug } from '../types';
+import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug } from '../types';
+import { DONATION_MESSAGES, MEGA_INFLUENCER_NAMES, FOLLOWER_SUGGESTION_TEMPLATES, POST_TEMPLATES } from '../socialContent';
 
 const INITIAL_STATE: SimulationState = {
   simTime: 8 * 3600,
@@ -72,6 +73,28 @@ const INITIAL_STATE: SimulationState = {
   },
   isOverdosing: false,
   overdoseDrug: null,
+  
+  // Economy
+  money: 50,
+  totalEarned: 50,
+  lastIncomeTime: 0,
+  
+  // Achievements
+  unlockedAchievements: [],
+  achievementProgress: {},
+  
+  // Enhanced social
+  followerSuggestions: [],
+  liveDonations: [],
+  postComments: {},
+  
+  // Achievement tracking
+  lastVoidTime: 0,
+  totalStreams: 0,
+  followerCount: 0,
+  totalDrugsTaken: 0,
+  drugsTried: [],
+  overdosesSurvived: 0,
 };
 
 interface PlayerOverrides {
@@ -85,48 +108,7 @@ interface PlayerOverrides {
 
 function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
   const fillRatio = state.bladderVolume / state.maxCapacity;
-  const posts = [
-    // Normal life posts
-    "Just finished work! Time to relax 🌙",
-    "Coffee break ☕ anyone?",
-    "Beautiful day outside! ☀️",
-    "Movie night vibes 🎬",
-    "Cooking something delicious tonight 🍳",
-    "Weekend plans? Anyone want to hang out?",
-    "Just got home, so tired 😴",
-    "Morning workout done! 💪",
-    "Reading a good book 📚",
-    "New playlist who dis 🎵",
-  ];
-  
-  const bladderPosts = [
-    "Okay my bladder is being SO dramatic right now 😩",
-    "Why do I always need to go when I'm busy?? 🙄",
-    "Holding it like it's an extreme sport 🏆",
-    "Note to self: don't drink 3 coffees in a row ☕☕☕",
-    "My bladder has its own agenda, I swear",
-    "Currently doing the potty dance 💃",
-    "Bladder: 1, Me: 0 😫",
-    "Someone invent a teleportation bathroom PLEASE 🚽✨",
-    "Crossing legs is my cardio today 🦵",
-    "The urge is real right now...",
-  ];
-  
-  const fullBladderPosts = [
-    "Okay I'm FULL but honestly? Kinda vibing with it 😌",
-    "My bladder is at max capacity and I'm weirdly okay with it",
-    "Full bladder energy is different, not gonna lie",
-    "I should go but... I'm kinda enjoying the pressure? 🤔",
-    "Living my best (full) life rn",
-  ];
-  
-  const emptyBladderPosts = [
-    "Why do I feel so empty and anxious?? 😟",
-    "My bladder feels weirdly empty and it's stressing me out",
-    "Anyone else get anxious when they don't feel full down there?",
-    "Need to drink something, feeling weird without that pressure",
-    "Empty bladder = empty soul? Is that a thing? 😅",
-  ];
+  const urgePercent = state.urgeSignal;
   
   let content: string;
   let author: string;
@@ -135,18 +117,28 @@ function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
   if (Math.random() < 0.7) {
     author = "Sarah_J";
     
+    // Choose post based on state and traits
     if (state.fullBladderPreference && fillRatio > 0.7) {
-      content = fullBladderPosts[Math.floor(Math.random() * fullBladderPosts.length)];
+      content = POST_TEMPLATES.fullBladderPreference[Math.floor(Math.random() * POST_TEMPLATES.fullBladderPreference.length)];
     } else if (state.fullBladderPreference && fillRatio < 0.2) {
-      content = emptyBladderPosts[Math.floor(Math.random() * emptyBladderPosts.length)];
-    } else if (fillRatio > 0.7) {
-      content = bladderPosts[Math.floor(Math.random() * bladderPosts.length)];
+      content = POST_TEMPLATES.emptyBladderAnxiety[Math.floor(Math.random() * POST_TEMPLATES.emptyBladderAnxiety.length)];
+    } else if (fillRatio > 0.7 || urgePercent > 70) {
+      content = POST_TEMPLATES.bladderRelated[Math.floor(Math.random() * POST_TEMPLATES.bladderRelated.length)];
     } else {
-      content = posts[Math.floor(Math.random() * posts.length)];
+      content = POST_TEMPLATES.normal[Math.floor(Math.random() * POST_TEMPLATES.normal.length)];
+    }
+    
+    // Add context-aware details
+    if (fillRatio > 0.8 && Math.random() < 0.3) {
+      content += ` (Currently at ${Math.round(fillRatio * 100)}% capacity)`;
+    }
+    if (state.activeDrugs.length > 0 && Math.random() < 0.2) {
+      const drugName = DRUG_PROPERTIES[state.activeDrugs[0].type].name;
+      content += ` #${drugName}Vibes`;
     }
   } else {
     // Other users
-    const otherUsers = ["CoffeeLover22", "NightOwl_", "FitnessFreak", "BookWorm99", "MusicVibes"];
+    const otherUsers = ["CoffeeLover22", "NightOwl_", "FitnessFreak", "BookWorm99", "MusicVibes", "BladderFan99", "UrgentVibes", "HoldingQueen"];
     author = otherUsers[Math.floor(Math.random() * otherUsers.length)];
     
     const otherPosts = [
@@ -160,6 +152,11 @@ function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
       "Weekend can't come soon enough!",
       "Just finished a 5k! 🏃‍♀️",
       "Who else is procrastinating? 🙋‍♀️",
+      "Living my best life ✨",
+      "Need coffee ASAP ☕",
+      "Anyone want to grab lunch?",
+      "Just binged a whole series 📺",
+      "Feeling productive today! ✅",
     ];
     content = otherPosts[Math.floor(Math.random() * otherPosts.length)];
   }
@@ -595,6 +592,7 @@ export function useSimulation() {
             newState.isLiveStreaming = true;
             newState.liveStartTime = newState.simTime;
             newState.liveViewerCount = Math.floor(Math.random() * 50) + 10;
+            newState.totalStreams += 1;
           }
         }
         
@@ -603,10 +601,58 @@ export function useSimulation() {
           newState.liveViewerCount += Math.floor((Math.random() - 0.3) * 5);
           newState.liveViewerCount = Math.max(5, newState.liveViewerCount);
           
+          // Update follower count based on viewers
+          if (Math.random() < 0.01 * simDt * newState.timeSpeed) {
+            newState.followerCount += Math.floor(Math.random() * 3) + 1;
+          }
+          
+          // Generate donations during stream
+          if (Math.random() < 0.005 * simDt * newState.timeSpeed * (newState.liveViewerCount / 50)) {
+            const isMega = Math.random() < 0.02; // 2% chance of mega influencer
+            const donation = {
+              id: `donation_${Date.now()}_${Math.random()}`,
+              viewer: isMega ? MEGA_INFLUENCER_NAMES[Math.floor(Math.random() * MEGA_INFLUENCER_NAMES.length)] : `Viewer${Math.floor(Math.random() * 9999)}`,
+              amount: isMega ? Math.floor(Math.random() * 80) + 20 : Math.floor(Math.random() * 29) + 1,
+              message: DONATION_MESSAGES[Math.floor(Math.random() * DONATION_MESSAGES.length)],
+              timestamp: newState.simTime,
+              isMegaInfluencer: isMega,
+            };
+            newState.liveDonations = [donation, ...newState.liveDonations].slice(0, 20);
+            newState.money += donation.amount;
+            newState.totalEarned += donation.amount;
+          }
+          
           // End stream after 10-30 minutes sim time
           if (newState.simTime - newState.liveStartTime > 600 + Math.random() * 1200) {
             newState.isLiveStreaming = false;
           }
+        }
+        
+        // Generate follower suggestions
+        if (Math.random() < 0.001 * simDt * newState.timeSpeed && newState.followerSuggestions.length < 10) {
+          const suggestion = {
+            id: `suggestion_${Date.now()}_${Math.random()}`,
+            follower: `Follower${Math.floor(Math.random() * 9999)}`,
+            suggestion: FOLLOWER_SUGGESTION_TEMPLATES[Math.floor(Math.random() * FOLLOWER_SUGGESTION_TEMPLATES.length)],
+            timestamp: newState.simTime,
+            responded: false,
+          };
+          newState.followerSuggestions = [suggestion, ...newState.followerSuggestions].slice(0, 10);
+        }
+        
+        // Follower income (capped at 30× simulation minutes)
+        const incomeInterval = Math.min(30 * 60, 60); // Max 30 minutes, check every minute
+        if (newState.simTime - newState.lastIncomeTime >= incomeInterval && newState.followerCount >= 10) {
+          let incomePerMinute = 0;
+          if (newState.followerCount >= 200) incomePerMinute = 0.50;
+          else if (newState.followerCount >= 100) incomePerMinute = 0.30;
+          else if (newState.followerCount >= 50) incomePerMinute = 0.15;
+          else incomePerMinute = 0.05;
+          
+          const income = incomePerMinute * incomeInterval;
+          newState.money += income;
+          newState.totalEarned += income;
+          newState.lastIncomeTime = newState.simTime;
         }
       }
 
@@ -783,8 +829,64 @@ export function useSimulation() {
     });
   }, []);
 
-  const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore') => {
+  const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal') => {
     setState(prev => ({ ...prev, activeSocialTab: tab }));
+  }, []);
+
+  const playerPost = useCallback((content: string) => {
+    setState(prev => {
+      const newPost: SocialMediaPost = {
+        id: `player_post_${Date.now()}_${Math.random()}`,
+        author: prev.playerAccount.username,
+        content,
+        timestamp: prev.simTime,
+        likes: 0,
+        comments: 0,
+        isFromUser: true,
+        commentList: [],
+      };
+      return {
+        ...prev,
+        playerAccount: {
+          ...prev.playerAccount,
+          posts: [newPost, ...prev.playerAccount.posts].slice(0, 50),
+        },
+      };
+    });
+  }, []);
+
+  const playerComment = useCallback((postId: string, content: string) => {
+    setState(prev => {
+      const newComment: SocialMediaComment = {
+        id: `player_comment_${Date.now()}_${Math.random()}`,
+        author: prev.playerAccount.username,
+        content,
+        timestamp: prev.simTime,
+        likes: 0,
+        isFromPlayer: true,
+      };
+      
+      // Add comment to player's post
+      const updatedPosts = prev.playerAccount.posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            commentList: [...(post.commentList || []), newComment],
+            comments: post.comments + 1,
+          };
+        }
+        return post;
+      });
+      
+      return {
+        ...prev,
+        playerAccount: {
+          ...prev.playerAccount,
+          posts: updatedPosts,
+          comments: [...prev.playerAccount.comments, newComment],
+        },
+      };
+    });
   }, []);
 
   return {
@@ -811,5 +913,7 @@ export function useSimulation() {
     setTrainingSpeed,
     toggleFullBladderPreference,
     setActiveSocialTab,
+    playerPost,
+    playerComment,
   };
 }
