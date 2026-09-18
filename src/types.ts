@@ -115,7 +115,7 @@ export type AIState =
 
 export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea';
 
-export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol';
+export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin';
 
 export interface DrugEffect {
   name: string;
@@ -316,6 +316,70 @@ export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
     description: 'Muscle relaxant. Reduces sphincter tension and urge awareness.',
     overdoseSymptoms: 'Extreme muscle weakness, difficulty breathing',
   },
+  valium: {
+    name: 'Valium',
+    category: 'Benzodiazepine',
+    fillMultiplier: 0.75,
+    urgeMultiplier: 0.25,
+    heartRateBonus: -12,
+    breathingBonus: -4,
+    sphincterRelaxation: 0.45,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 5,
+    duration: 3600,
+    description: 'Anti-anxiety medication. Strong sphincter relaxation.',
+    overdoseSymptoms: 'Severe drowsiness, confusion, respiratory depression',
+  },
+  morphine: {
+    name: 'Morphine',
+    category: 'Opioid',
+    fillMultiplier: 0.5,
+    urgeMultiplier: 0.05,
+    heartRateBonus: -20,
+    breathingBonus: -6,
+    sphincterRelaxation: 0.6,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 2,
+    duration: 5400,
+    description: 'Powerful painkiller. Near-total bladder awareness suppression.',
+    overdoseSymptoms: 'Respiratory arrest, coma, death',
+  },
+  ketamine: {
+    name: 'Ketamine',
+    category: 'Dissociative',
+    fillMultiplier: 0.85,
+    urgeMultiplier: 0.15,
+    heartRateBonus: 15,
+    breathingBonus: 2,
+    sphincterRelaxation: 0.35,
+    suppressesUrge: true,
+    addictive: false,
+    overdoseRisk: true,
+    overdoseThreshold: 4,
+    duration: 2400,
+    description: 'Dissociative anesthetic. Detaches from bodily sensations.',
+    overdoseSymptoms: 'Loss of consciousness, respiratory failure',
+  },
+  ritalin: {
+    name: 'Ritalin',
+    category: 'Stimulant',
+    fillMultiplier: 1.3,
+    urgeMultiplier: 0.4,
+    heartRateBonus: 20,
+    breathingBonus: 4,
+    sphincterRelaxation: 0.05,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 4,
+    duration: 2700,
+    description: 'ADHD medication. Suppresses urge while increasing heart rate.',
+    overdoseSymptoms: 'Agitation, hallucinations, cardiac arrest',
+  },
 };
 
-export const TIME_SPEEDS = [1, 5, 15, 30, 40, 60, 120];
+export const TIME_SPEEDS = [1, 5, 15, 30, 40, 60, 120, 150];

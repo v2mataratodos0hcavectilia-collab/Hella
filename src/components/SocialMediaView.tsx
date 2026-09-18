@@ -45,12 +45,13 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
     }
   }
 
-  const recommendedUsers = [
-    { name: "BladderBabe", followers: "12.5K", bio: "Full bladder enthusiast 💧" },
-    { name: "HoldingHero", followers: "8.2K", bio: "Extreme holding challenges" },
-    { name: "PeeStream", followers: "45.1K", bio: "Live bathroom cam 24/7" },
-    { name: "UrgencyQueen", followers: "23.8K", bio: "Can't hold it? Same." },
-    { name: "BladderTraining", followers: "67.3K", bio: "Tips & tricks for capacity" },
+  const followerSuggestions = [
+    { follower: "BladderFan99", suggestion: "Try holding for 2 hours straight!", timestamp: state.simTime - 300 },
+    { follower: "UrgentVibes", suggestion: "Drink 3 coffees in a row 😈", timestamp: state.simTime - 600 },
+    { follower: "HoldingQueen", suggestion: "Go live when you're at 90%!", timestamp: state.simTime - 900 },
+    { follower: "PeePeePooPoo", suggestion: "Try the full bladder preference trait", timestamp: state.simTime - 1200 },
+    { follower: "FullBladderClub", suggestion: "Cross your legs and pace around", timestamp: state.simTime - 1500 },
+    { follower: "DesperateDan", suggestion: "Lock your sphincter for 30 min", timestamp: state.simTime - 1800 },
   ];
 
   const exploreUsers = [
@@ -245,24 +246,21 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
           </div>
         )}
 
-        {/* RECOMMENDATIONS TAB */}
+        {/* RECOMMENDATIONS TAB - Followers suggesting things */}
         {state.activeSocialTab === 'recommendations' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            <div className="text-xs text-gray-500 mb-2">⭐ Recommended for you</div>
-            {recommendedUsers.map((user, i) => (
+            <div className="text-xs text-gray-500 mb-2">💬 Followers suggest</div>
+            {followerSuggestions.map((item, i) => (
               <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                    {user.name[0]}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                    {item.follower[0]}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-bold text-white">@{user.name}</div>
-                    <div className="text-xs text-gray-400">{user.followers} followers</div>
-                    <div className="text-xs text-gray-500 mt-1">{user.bio}</div>
+                    <div className="text-xs text-blue-400 font-bold">@{item.follower}</div>
+                    <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
+                    <div className="text-[10px] text-gray-500 mt-1">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
                   </div>
-                  <button className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded">
-                    Follow
-                  </button>
                 </div>
               </div>
             ))}

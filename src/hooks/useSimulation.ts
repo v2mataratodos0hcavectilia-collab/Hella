@@ -55,6 +55,10 @@ const INITIAL_STATE: SimulationState = {
     nicotine: 0,
     blazex: 0,
     serenol: 0,
+    valium: 0,
+    morphine: 0,
+    ketamine: 0,
+    ritalin: 0,
   },
   isOverdosing: false,
   overdoseDrug: null,
@@ -385,10 +389,13 @@ export function useSimulation() {
         if (newState.fullBladderPreference) {
           const fillRatio = newState.bladderVolume / newState.maxCapacity;
           if (fillRatio > 0.7) {
-            // Likes being full - extremely calm and relaxed
+            // Likes being full - extremely calm, relaxed, and thinks clearly
             newState.urgeSignal *= 0.2; // Very low urge perception
             newState.cognitiveState = 'relaxed';
             newState.distractionLevel = Math.max(newState.distractionLevel, 80);
+            // Clear thinking at high urge - no confusion or desperation
+            newState.heartRate -= 10;
+            newState.breathingRate -= 3;
           } else if (fillRatio < 0.2) {
             // Anxious when empty - increased stress
             newState.urgeSignal = Math.max(newState.urgeSignal, 60);
@@ -520,10 +527,10 @@ export function useSimulation() {
         const trainingRate = 0.0001 * newState.trainingSpeedMultiplier;
         const rawLevel = newState.trainingLevel + simDt * trainingRate;
         // Round to nearest hundredth
-        newState.trainingLevel = Math.min(5, Math.round(rawLevel * 100) / 100);
+        newState.trainingLevel = Math.min(30, Math.round(rawLevel * 100) / 100);
         // Round maxCapacity to nearest 100
-        const rawCapacity = 500 + newState.trainingLevel * 60;
-        newState.maxCapacity = Math.min(800, Math.round(rawCapacity / 100) * 100);
+        const rawCapacity = 500 + newState.trainingLevel * 20;
+        newState.maxCapacity = Math.min(1100, Math.round(rawCapacity / 100) * 100);
         newState.desensitizationLevel = Math.min(100, newState.desensitizationLevel + simDt * trainingRate * 10);
         newState.nerveSensitivity = Math.max(30, 100 - newState.desensitizationLevel * 0.7);
       }
@@ -545,11 +552,25 @@ export function useSimulation() {
           newState.socialMediaPosts = [post, ...newState.socialMediaPosts].slice(0, 50);
         }
         
-        // Random chance to go live if bladder is very full
-        if (!newState.isLiveStreaming && newState.bladderVolume > newState.maxCapacity * 0.8 && Math.random() < 0.00005 * simDt * newState.timeSpeed) {
-          newState.isLiveStreaming = true;
-          newState.liveStartTime = newState.simTime;
-          newState.liveViewerCount = Math.floor(Math.random() * 50) + 10;
+        // Random chance to go live - based on mood/feeling, not just bladder
+        if (!newState.isLiveStreaming) {
+          let liveChance = 0.00003 * simDt * newState.timeSpeed;
+          
+          // Full bladder preference trait makes her more likely to go live when full
+          if (newState.fullBladderPreference && newState.bladderVolume > newState.maxCapacity * 0.7) {
+            liveChance *= 3; // 3x more likely when trait active and bladder is full
+          }
+          
+          // Other factors that increase likelihood
+          if (newState.distractionLevel > 70) liveChance *= 1.5; // Bored/distracted
+          if (newState.cognitiveState === 'relaxed') liveChance *= 1.2; // Feeling good
+          if (newState.urgeSignal > 80 && !newState.fullBladderPreference) liveChance *= 0.3; // Less likely when desperate (unless trait active)
+          
+          if (Math.random() < liveChance) {
+            newState.isLiveStreaming = true;
+            newState.liveStartTime = newState.simTime;
+            newState.liveViewerCount = Math.floor(Math.random() * 50) + 10;
+          }
         }
         
         // Update live stream

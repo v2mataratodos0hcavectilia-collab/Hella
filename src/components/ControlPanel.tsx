@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS, DrugType, DRUG_PROPERTIES } from '../types';
 
 interface PlayerOverrides {
@@ -171,56 +172,211 @@ export default function ControlPanel({
         </div>
       </Section>
 
-      {/* Fluid Intake */}
-      <Section title="🥤 FLUID INTAKE">
-        <div className="grid grid-cols-7 gap-1">
-          {(['water', 'coffee', 'tea', 'alcohol', 'soda', 'energy_drink', 'juice', 'milk', 'smoothie', 'hot_chocolate', 'iced_coffee', 'sports_drink', 'coconut_water', 'herbal_tea'] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => giveDrink(type)}
-              className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
-            >
-              {type === 'water' ? '💧' : type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'alcohol' ? '🍺' : type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : type === 'juice' ? '🧃' : type === 'milk' ? '🥛' : type === 'smoothie' ? '🥤' : type === 'hot_chocolate' ? '🍫' : type === 'iced_coffee' ? '🧊' : type === 'sports_drink' ? '🏃' : type === 'coconut_water' ? '🥥' : '🌿'}
-              <br />{type.replace('_', ' ').substring(0, 6)}
-            </button>
-          ))}
+      {/* Fluid Intake - Collapsible */}
+      <CollapsibleSection title="🥤 FLUID INTAKE" defaultOpen={false}>
+        <div className="space-y-2">
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Water & Basics</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['water', 'juice', 'milk'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => giveDrink(type)}
+                  className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
+                >
+                  {type === 'water' ? '💧' : type === 'juice' ? '🧃' : '🥛'}
+                  <br />{type}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Hot Drinks</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['coffee', 'tea', 'hot_chocolate'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => giveDrink(type)}
+                  className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
+                >
+                  {type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : '🍫'}
+                  <br />{type.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Cold & Carbonated</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['soda', 'energy_drink', 'iced_coffee'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => giveDrink(type)}
+                  className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
+                >
+                  {type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : '🧊'}
+                  <br />{type.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Specialty</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['alcohol', 'smoothie', 'sports_drink'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => giveDrink(type)}
+                  className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
+                >
+                  {type === 'alcohol' ? '🍺' : type === 'smoothie' ? '🥤' : '🏃'}
+                  <br />{type.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {state.lastDrinkType && (
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-700">
             Last: {state.lastDrinkType.replace('_', ' ')} ({state.diureticMultiplier.toFixed(1)}× fill)
           </div>
         )}
-      </Section>
+      </CollapsibleSection>
 
-      {/* Drugs */}
-      <Section title="💊 DRUGS">
-        <div className="grid grid-cols-5 gap-1">
-          {(['caffeine', 'adderall', 'xanax', 'oxycontin', 'mdma', 'lsd', 'nicotine', 'blazex', 'serenol'] as const).map(type => {
-            const props = DRUG_PROPERTIES[type];
-            const doses = state.drugDoses[type] || 0;
-            const isActive = state.activeDrugs.some(d => d.type === type);
-            return (
-              <button
-                key={type}
-                onClick={() => giveDrug(type)}
-                className={`px-1 py-1.5 rounded text-xs ${
-                  isActive 
-                    ? 'bg-green-700 text-white' 
-                    : doses >= props.overdoseThreshold
-                    ? 'bg-red-900 text-red-300'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                title={`${props.name}\n${props.category}\n${props.description}\n${props.addictive ? '⚠️ ADDICTIVE' : ''}\n${props.overdoseRisk ? `⚠️ OVERDOSE: ${props.overdoseThreshold}+ doses` : ''}`}
-              >
-                {type === 'caffeine' ? '☕' : type === 'adderall' ? '💊' : type === 'xanax' ? '💊' : type === 'oxycontin' ? '💊' : type === 'mdma' ? '🎭' : type === 'lsd' ? '🍄' : type === 'nicotine' ? '🚬' : type === 'blazex' ? '💧' : '😌'}
-                <br />{props.name.substring(0, 6)}
-                {doses > 0 && <div className="text-[9px] mt-0.5">×{doses}</div>}
-              </button>
-            );
-          })}
+      {/* Drugs - Collapsible */}
+      <CollapsibleSection title="💊 DRUGS" defaultOpen={false}>
+        <div className="space-y-2">
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Stimulants</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['caffeine', 'adderall', 'ritalin'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    {type === 'caffeine' ? '☕' : type === 'adderall' ? '💊' : '💊'}
+                    <br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Depressants</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['xanax', 'valium', 'serenol'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    💊<br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Opioids</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['oxycontin', 'morphine'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    💊<br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Other</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['mdma', 'lsd', 'ketamine'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    {type === 'mdma' ? '🎭' : type === 'lsd' ? '🍄' : '💊'}
+                    <br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Specialty</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['nicotine', 'blazex'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    {type === 'nicotine' ? '🚬' : '💧'}
+                    <br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         {state.activeDrugs.length > 0 && (
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 space-y-1 pt-2 border-t border-gray-700">
             <div className="text-[10px] text-gray-500">Active:</div>
             {state.activeDrugs.slice(0, 3).map((drug, i) => {
               const props = DRUG_PROPERTIES[drug.type];
@@ -242,7 +398,7 @@ export default function ControlPanel({
             </div>
           </div>
         )}
-      </Section>
+      </CollapsibleSection>
 
       {/* Environment */}
       <Section title="🌡 ENVIRONMENT" locked={overrides.temperature || overrides.posture || overrides.location}>
@@ -361,11 +517,12 @@ export default function ControlPanel({
             type="range"
             min="1"
             max="100"
+            step="1"
             value={state.trainingSpeedMultiplier}
             onChange={(e) => setTrainingSpeed(Number(e.target.value))}
             className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
           />
-          <span className="text-xs text-gray-300 w-10 text-right">{state.trainingSpeedMultiplier}×</span>
+          <span className="text-xs text-gray-300 w-12 text-right">{state.trainingSpeedMultiplier}×</span>
         </div>
         <div className="text-[10px] text-gray-500 mt-1">
           1× = normal | 100× = maximum speed
@@ -407,6 +564,27 @@ function Section({ title, children, locked }: { title: string; children: React.R
         {locked && <span className="text-[10px] text-amber-400 font-normal normal-case">🔒 manual</span>}
       </h3>
       {children}
+    </div>
+  );
+}
+
+function CollapsibleSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="border border-gray-700 rounded-lg bg-gray-800/50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-2 py-2 flex items-center justify-between text-xs font-bold text-gray-300 uppercase tracking-wider hover:bg-gray-700/50 rounded-lg"
+      >
+        <span>{title}</span>
+        <span className="text-gray-500">{isOpen ? '▼' : '▶'}</span>
+      </button>
+      {isOpen && (
+        <div className="px-2 pb-2">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
