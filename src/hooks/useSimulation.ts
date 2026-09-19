@@ -1697,6 +1697,14 @@ export function useSimulation() {
     });
   }, []);
 
+  // Time manipulation functions
+  const jumpTime = useCallback((seconds: number) => {
+    setState(prev => ({
+      ...prev,
+      simTime: prev.simTime + seconds,
+    }));
+  }, []);
+
   return {
     state,
     overrides,
@@ -1739,5 +1747,6 @@ export function useSimulation() {
     makePlayerSuggestion,
     addCommentToPost,
     postRecommendation,
+    jumpTime,
   };
 }

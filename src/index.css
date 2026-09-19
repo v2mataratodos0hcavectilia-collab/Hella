@@ -88,3 +88,13 @@ html, body, #root {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Hide scrollbar for horizontal scrollable headers */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

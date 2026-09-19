@@ -25,6 +25,7 @@ import EnhancedSocial from './components/EnhancedSocial';
 import DailyChallenges from './components/DailyChallenges';
 import DynamicEvents from './components/DynamicEvents';
 import PredictionSystem from './components/PredictionSystem';
+import TimeManipulation from './components/TimeManipulation';
 import { Scenario } from './types';
 
 function CollapsibleBottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -91,10 +92,11 @@ function App() {
     makePlayerSuggestion,
     addCommentToPost,
     postRecommendation,
+    jumpTime,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements' | 'stats' | 'challenges' | 'events' | 'prediction'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements' | 'stats' | 'challenges' | 'events' | 'prediction' | 'time'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
@@ -148,17 +150,43 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col bg-gray-950 text-white overflow-hidden">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold tracking-tight">
-            <span className="text-red-400">THE</span>{' '}
-            <span className="text-white">VESSEL</span>
-          </h1>
-          <span className="text-xs text-gray-500 font-mono">Internal Sandbox v1.0</span>
+      <header className="bg-gray-900 border-b border-gray-800 px-4 py-2 shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold tracking-tight">
+              <span className="text-red-400">THE</span>{' '}
+              <span className="text-white">VESSEL</span>
+            </h1>
+            <span className="text-xs text-gray-500 font-mono">Internal Sandbox v1.0</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
+              title="Tutorial"
+            >
+              📚 Tutorial
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
+              title="Settings"
+            >
+              ⚙️ Settings
+            </button>
+            <button
+              onClick={() => {
+                handleEnableAudio();
+                setSettings({ ...settings, audioEnabled: !settings.audioEnabled });
+              }}
+              className={`px-3 py-1 text-xs font-mono rounded ${settings.audioEnabled ? 'bg-green-700 text-green-200' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+            >
+              {settings.audioEnabled ? '🔊 Audio ON' : '🔇 Enable Audio'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex bg-gray-800 rounded-lg overflow-hidden">
+        {/* Scrollable View Toggle */}
+        <div className="flex bg-gray-800 rounded-lg overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveView('micro')}
               className={`px-3 py-1 text-xs font-mono ${activeView === 'micro' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
@@ -231,33 +259,13 @@ function App() {
             >
               🔮 Predict
             </button>
+            <button
+              onClick={() => setActiveView('time')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'time' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              ⏰ Time
+            </button>
           </div>
-          {/* Settings & Tutorial Buttons */}
-          <button
-            onClick={() => setShowTutorial(true)}
-            className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
-            title="Tutorial"
-          >
-            📚 Tutorial
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
-            title="Settings"
-          >
-            ⚙️ Settings
-          </button>
-          {/* Audio Toggle */}
-          <button
-            onClick={() => {
-              handleEnableAudio();
-              setSettings({ ...settings, audioEnabled: !settings.audioEnabled });
-            }}
-            className={`px-3 py-1 text-xs font-mono rounded ${settings.audioEnabled ? 'bg-green-700 text-green-200' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-          >
-            {settings.audioEnabled ? '🔊 Audio ON' : '🔇 Enable Audio'}
-          </button>
-        </div>
       </header>
 
       {/* Scenario Selector */}
@@ -324,6 +332,15 @@ function App() {
             ) : activeView === 'prediction' ? (
               <div className="flex-1 p-1 overflow-y-auto">
                 <PredictionSystem state={state} />
+              </div>
+            ) : activeView === 'time' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <TimeManipulation 
+                  state={state} 
+                  setTimeSpeed={setTimeSpeed}
+                  togglePause={togglePause}
+                  jumpTime={jumpTime}
+                />
               </div>
             ) : (
               <div className="flex-1 p-1">
