@@ -86,6 +86,45 @@ export default function StatsPanel({ state }: StatsPanelProps) {
           value={`Lv.${state.trainingLevel} | Desens: ${state.desensitizationLevel.toFixed(0)}%`}
           color="text-teal-400"
         />
+
+        {/* Money */}
+        <StatItem
+          label="MONEY"
+          value={`$${state.money.toFixed(2)}`}
+          color="text-green-400"
+        />
+
+        {/* Followers */}
+        <StatItem
+          label="FOLLOWERS"
+          value={`${state.followerCount}`}
+          color="text-blue-400"
+        />
+
+        {/* Status Indicators */}
+        {state.isPassedOut && (
+          <StatItem
+            label="STATUS"
+            value="PASSED OUT"
+            color="text-yellow-400 animate-pulse"
+          />
+        )}
+
+        {state.isDead && (
+          <StatItem
+            label="STATUS"
+            value={`DEAD: ${state.deathCause}`}
+            color="text-red-500 animate-pulse"
+          />
+        )}
+
+        {state.nanobotsActive && (
+          <StatItem
+            label="NANOBOTS"
+            value="ACTIVE"
+            color="text-cyan-400"
+          />
+        )}
       </div>
     </div>
   );

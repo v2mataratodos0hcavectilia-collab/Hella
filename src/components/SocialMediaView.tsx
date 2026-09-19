@@ -45,15 +45,6 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
     }
   }
 
-  const followerSuggestions = [
-    { follower: "BladderFan99", suggestion: "Try holding for 2 hours straight!", timestamp: state.simTime - 300 },
-    { follower: "UrgentVibes", suggestion: "Drink 3 coffees in a row 😈", timestamp: state.simTime - 600 },
-    { follower: "HoldingQueen", suggestion: "Go live when you're at 90%!", timestamp: state.simTime - 900 },
-    { follower: "PeePeePooPoo", suggestion: "Try the full bladder preference trait", timestamp: state.simTime - 1200 },
-    { follower: "FullBladderClub", suggestion: "Cross your legs and pace around", timestamp: state.simTime - 1500 },
-    { follower: "DesperateDan", suggestion: "Lock your sphincter for 30 min", timestamp: state.simTime - 1800 },
-  ];
-
   const exploreUsers = [
     { name: "WaterLover", followers: "5.4K", posts: 234, verified: true },
     { name: "CoffeeAddict", followers: "15.7K", posts: 892, verified: false },
@@ -178,6 +169,22 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
                   </div>
                 </div>
 
+                {/* Live donations */}
+                {state.liveDonations.length > 0 && (
+                  <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-t border-yellow-700/50 p-2 space-y-1">
+                    <div className="text-xs text-yellow-400 font-bold mb-1">💰 Recent Donations</div>
+                    {state.liveDonations.slice(0, 5).map((donation) => (
+                      <div key={donation.id} className="text-xs flex items-center gap-2">
+                        <span className={`font-bold ${donation.isMegaInfluencer ? 'text-yellow-300' : 'text-green-400'}`}>
+                          {donation.isMegaInfluencer ? '⭐ ' : ''}{donation.viewer}
+                        </span>
+                        <span className="text-green-400">${donation.amount}</span>
+                        <span className="text-gray-400 text-[10px]">{donation.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Live chat */}
                 <div className="flex-1 overflow-y-auto bg-gray-900/50 p-2 space-y-1">
                   <div className="text-xs text-gray-500 mb-2">💬 Live Chat</div>
@@ -251,20 +258,31 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
         {state.activeSocialTab === 'recommendations' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="text-xs text-gray-500 mb-2">💬 Followers suggest</div>
-            {followerSuggestions.map((item, i) => (
-              <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
-                    {item.follower[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-blue-400 font-bold">@{item.follower}</div>
-                    <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
-                    <div className="text-[10px] text-gray-500 mt-1">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
+            {state.followerSuggestions.length === 0 ? (
+              <div className="text-xs text-gray-500 text-center py-4">
+                No suggestions yet. Keep streaming to get follower suggestions!
+              </div>
+            ) : (
+              state.followerSuggestions.map((item) => (
+                <div key={item.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                      {item.follower[0]}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs text-blue-400 font-bold">@{item.follower}</div>
+                      <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="text-[10px] text-gray-500">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
+                        {item.responded && (
+                          <div className="text-[10px] text-green-400">✓ Responded</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
