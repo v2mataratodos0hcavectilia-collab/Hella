@@ -59,6 +59,22 @@ export default function StatsPanel({ state }: StatsPanelProps) {
           color={state.breathingRate > 20 ? 'text-orange-400' : 'text-cyan-400'}
         />
 
+        {/* Blood Pressure */}
+        <StatItem
+          label="BP"
+          value={`${state.bloodPressure.toFixed(0)} mmHg`}
+          color={state.bloodPressure > 180 ? 'text-red-400' : state.bloodPressure > 140 ? 'text-orange-400' : state.bloodPressure < 90 ? 'text-yellow-400' : 'text-green-400'}
+        />
+
+        {/* Blood O2 Level */}
+        <StatItem
+          label="O₂"
+          value={`${state.bloodO2Level.toFixed(0)}%`}
+          color={state.bloodO2Level < 80 ? 'text-red-400' : state.bloodO2Level < 90 ? 'text-orange-400' : state.bloodO2Level < 95 ? 'text-yellow-400' : 'text-green-400'}
+          bar={state.bloodO2Level}
+          barColor={state.bloodO2Level < 80 ? 'bg-red-500' : state.bloodO2Level < 90 ? 'bg-orange-500' : state.bloodO2Level < 95 ? 'bg-yellow-500' : 'bg-green-500'}
+        />
+
         {/* Consciousness */}
         <StatItem
           label="CONSCIOUSNESS"

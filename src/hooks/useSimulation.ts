@@ -29,6 +29,8 @@ const INITIAL_STATE: SimulationState = {
   location: 'home',
   heartRate: 72,
   breathingRate: 14,
+  bloodPressure: 120, // mmHg systolic (normal range 90-120)
+  bloodO2Level: 98, // % (normal range 95-100%)
   isSleeping: false,
   sleepWakeSignalDisabled: false,
   lastDrinkType: null,
@@ -818,6 +820,32 @@ export function useSimulation() {
       newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0) + totalDrugHeartRate;
       newState.breathingRate = 14 + urgencyFactor * 12 + totalDrugBreathing;
 
+      // Blood pressure calculation (affected by heart rate and heart beat strength)
+      // Base: 120 mmHg, increases with heart rate and beat strength
+      const heartRateFactor = (newState.heartRate - 72) / 72; // normalized around 72 BPM
+      const beatStrengthFactor = (newState.heartBeatStrength - 50) / 50; // normalized around 50%
+      newState.bloodPressure = 120 + (heartRateFactor * 40) + (beatStrengthFactor * 30);
+      
+      // Blood O2 level calculation (affected by breathing rate and breath deepness)
+      // When breathing normally (12-20 BrPM, 50% deepness), O2 stays at 98%
+      // When holding breath (0 BrPM), O2 decreases over time
+      // When breathing heavily, O2 can increase slightly (up to 100%)
+      if (newState.breathingRate === 0) {
+        // Holding breath - O2 decreases by ~0.5% per second
+        newState.bloodO2Level = Math.max(0, newState.bloodO2Level - (0.5 * simDt));
+      } else {
+        // Normal breathing - O2 recovery based on rate and deepness
+        const breathingEfficiency = (newState.breathingRate / 16) * (newState.breathDeepness / 50);
+        const targetO2 = Math.min(100, 95 + (breathingEfficiency * 5));
+        // Recover towards target at rate based on breathing efficiency
+        const recoveryRate = breathingEfficiency * 0.2 * simDt;
+        if (newState.bloodO2Level < targetO2) {
+          newState.bloodO2Level = Math.min(targetO2, newState.bloodO2Level + recoveryRate);
+        } else if (newState.bloodO2Level > targetO2) {
+          newState.bloodO2Level = Math.max(targetO2, newState.bloodO2Level - recoveryRate * 0.5);
+        }
+      }
+
       // Full bladder preference trait effects on vitals
       if (newState.fullBladderPreference) {
         const fillRatio = newState.bladderVolume / newState.maxCapacity;
@@ -878,6 +906,33 @@ export function useSimulation() {
         } else if (newState.breathingRate < 5) {
           consciousnessDrainRate += 2; // Respiratory depression
           deathCause = 'Respiratory depression';
+        }
+
+        // Blood O2 level effects (hypoxia)
+        if (newState.bloodO2Level < 70) {
+          consciousnessDrainRate += 8; // Severe hypoxia
+          if (!deathCause) deathCause = 'Severe hypoxia (O2 < 70%)';
+        } else if (newState.bloodO2Level < 80) {
+          consciousnessDrainRate += 4; // Moderate hypoxia
+          if (!deathCause) deathCause = 'Moderate hypoxia (O2 < 80%)';
+        } else if (newState.bloodO2Level < 90) {
+          consciousnessDrainRate += 1; // Mild hypoxia
+          if (!deathCause) deathCause = 'Mild hypoxia (O2 < 90%)';
+        }
+
+        // Blood pressure effects
+        if (newState.bloodPressure > 200) {
+          consciousnessDrainRate += 3; // Hypertensive crisis
+          if (!deathCause) deathCause = 'Hypertensive crisis (BP > 200)';
+        } else if (newState.bloodPressure > 180) {
+          consciousnessDrainRate += 1; // Severe hypertension
+          if (!deathCause) deathCause = 'Severe hypertension (BP > 180)';
+        } else if (newState.bloodPressure < 70) {
+          consciousnessDrainRate += 4; // Severe hypotension
+          if (!deathCause) deathCause = 'Severe hypotension (BP < 70)';
+        } else if (newState.bloodPressure < 90) {
+          consciousnessDrainRate += 1; // Mild hypotension
+          if (!deathCause) deathCause = 'Mild hypotension (BP < 90)';
         }
         
         // Overdose effects

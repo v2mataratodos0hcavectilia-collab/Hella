@@ -39,6 +39,8 @@ export interface SimulationState {
   // Vitals
   heartRate: number; // BPM
   breathingRate: number; // BrPM
+  bloodPressure: number; // mmHg (systolic)
+  bloodO2Level: number; // 0-100% (oxygen saturation)
 
   // Sleep
   isSleeping: boolean;
