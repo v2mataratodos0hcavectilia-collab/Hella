@@ -5,9 +5,11 @@ interface SocialMediaViewProps {
   state: SimulationState;
   setActiveTab: (tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal' | 'chat') => void;
   setViewedProfile: (profile: string | null) => void;
+  startSignup: (username: string) => void;
+  makePlayerSuggestion: (content: string) => void;
 }
 
-export default function SocialMediaView({ state, setActiveTab, setViewedProfile }: SocialMediaViewProps) {
+export default function SocialMediaView({ state, setActiveTab, setViewedProfile, startSignup, makePlayerSuggestion }: SocialMediaViewProps) {
   const [liveChat, setLiveChat] = useState<Array<{ user: string; message: string; timestamp: number }>>([]);
 
   const formatTime = (simTime: number) => {
@@ -103,26 +105,67 @@ export default function SocialMediaView({ state, setActiveTab, setViewedProfile 
           <div className="flex-1 flex flex-col overflow-hidden">
             {state.isLiveStreaming ? (
               <>
-                {/* 2.5D Character View */}
-                <div className="relative aspect-video bg-gradient-to-b from-gray-800 to-gray-900 shrink-0">
-                  {/* Character body */}
+                {/* 2.5D Character View - Realistic Live Cam */}
+                <div className="relative aspect-video bg-gradient-to-b from-gray-800 to-gray-900 shrink-0 overflow-hidden">
+                  {/* Background environment based on location */}
+                  <div className="absolute inset-0">
+                    {state.location === 'home' && <div className="w-full h-full bg-gradient-to-b from-amber-900/20 to-gray-900" />}
+                    {state.location === 'office' && <div className="w-full h-full bg-gradient-to-b from-blue-900/20 to-gray-900" />}
+                    {state.location === 'car' && <div className="w-full h-full bg-gradient-to-b from-gray-700 to-gray-900" />}
+                  </div>
+                  
+                  {/* Character body with realistic behavior */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      {/* Head */}
+                    <div className={`relative transition-all duration-500 ${
+                      state.aiState === 'pacing' ? 'animate-pulse' : ''
+                    } ${state.aiState === 'shifting_weight' ? 'animate-bounce' : ''}`}>
+                      
+                      {/* Head with facial expressions */}
                       <div className="w-16 h-16 rounded-full bg-gradient-to-b from-amber-200 to-amber-300 mx-auto mb-2 relative">
                         {/* Hair */}
                         <div className="absolute -top-2 left-0 right-0 h-8 bg-gradient-to-b from-amber-800 to-amber-900 rounded-t-full" />
-                        {/* Eyes */}
-                        <div className="absolute top-6 left-3 w-2 h-2 bg-gray-800 rounded-full" />
-                        <div className="absolute top-6 right-3 w-2 h-2 bg-gray-800 rounded-full" />
-                        {/* Mouth */}
-                        <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full ${
-                          state.urgeSignal > 80 ? 'bg-red-400' : 'bg-pink-400'
+                        
+                        {/* Eyes - change based on urge */}
+                        <div className={`absolute top-6 left-3 w-2 h-2 rounded-full ${
+                          state.urgeSignal > 80 ? 'bg-red-600' : 
+                          state.urgeSignal > 60 ? 'bg-orange-500' : 
+                          'bg-gray-800'
                         }`} />
+                        <div className={`absolute top-6 right-3 w-2 h-2 rounded-full ${
+                          state.urgeSignal > 80 ? 'bg-red-600' : 
+                          state.urgeSignal > 60 ? 'bg-orange-500' : 
+                          'bg-gray-800'
+                        }`} />
+                        
+                        {/* Eyebrows - furrowed when desperate */}
+                        {state.urgeSignal > 70 && (
+                          <>
+                            <div className="absolute top-4 left-2 w-3 h-0.5 bg-gray-800 rotate-12" />
+                            <div className="absolute top-4 right-2 w-3 h-0.5 bg-gray-800 -rotate-12" />
+                          </>
+                        )}
+                        
+                        {/* Mouth - changes with urge */}
+                        <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 ${
+                          state.urgeSignal > 90 ? 'w-3 h-3 border-2 border-red-400 rounded-full' :
+                          state.urgeSignal > 70 ? 'w-4 h-0.5 bg-red-400 rounded-full' :
+                          state.urgeSignal > 50 ? 'w-4 h-1 bg-pink-400 rounded-full' :
+                          'w-4 h-1 bg-pink-300 rounded-full'
+                        }`} />
+                        
+                        {/* Sweat drops when very desperate */}
+                        {state.urgeSignal > 85 && (
+                          <>
+                            <div className="absolute top-3 right-1 w-1 h-2 bg-blue-300 rounded-full animate-pulse" />
+                            <div className="absolute top-5 left-1 w-1 h-2 bg-blue-300 rounded-full animate-pulse" />
+                          </>
+                        )}
                       </div>
                       
-                      {/* Body */}
-                      <div className="w-24 h-32 bg-gradient-to-b from-purple-500 to-purple-600 rounded-lg mx-auto relative overflow-hidden">
+                      {/* Body with posture-based positioning */}
+                      <div className={`w-24 h-32 bg-gradient-to-b from-purple-500 to-purple-600 rounded-lg mx-auto relative overflow-hidden ${
+                        state.aiState === 'crossing_legs' ? 'scale-95' : ''
+                      }`}>
                         {/* Bladder bulge */}
                         {isBulging && (
                           <div 
@@ -135,15 +178,41 @@ export default function SocialMediaView({ state, setActiveTab, setViewedProfile 
                           />
                         )}
                         
-                        {/* Arms */}
-                        <div className="absolute -left-4 top-4 w-4 h-20 bg-gradient-to-b from-amber-200 to-amber-300 rounded-full" />
-                        <div className="absolute -right-4 top-4 w-4 h-20 bg-gradient-to-b from-amber-200 to-amber-300 rounded-full" />
+                        {/* Arms - position based on behavior */}
+                        <div className={`absolute -left-4 top-4 w-4 h-20 bg-gradient-to-b from-amber-200 to-amber-300 rounded-full transition-all duration-300 ${
+                          state.aiState === 'holding' ? 'rotate-12 translate-y-2' :
+                          state.aiState === 'crossing_legs' ? 'rotate-45 translate-x-2' :
+                          state.aiState === 'pacing' ? '-rotate-12' :
+                          ''
+                        }`} />
+                        <div className={`absolute -right-4 top-4 w-4 h-20 bg-gradient-to-b from-amber-200 to-amber-300 rounded-full transition-all duration-300 ${
+                          state.aiState === 'holding' ? '-rotate-12 translate-y-2' :
+                          state.aiState === 'crossing_legs' ? '-rotate-45 -translate-x-2' :
+                          state.aiState === 'pacing' ? 'rotate-12' :
+                          ''
+                        }`} />
+                        
+                        {/* Hands on belly when holding */}
+                        {state.aiState === 'holding' && state.urgeSignal > 70 && (
+                          <>
+                            <div className="absolute left-2 top-12 w-3 h-3 bg-amber-200 rounded-full" />
+                            <div className="absolute right-2 top-12 w-3 h-3 bg-amber-200 rounded-full" />
+                          </>
+                        )}
                       </div>
 
-                      {/* Legs */}
-                      <div className="flex justify-center gap-2 mt-2">
-                        <div className="w-6 h-24 bg-gradient-to-b from-blue-600 to-blue-700 rounded-b-lg" />
-                        <div className="w-6 h-24 bg-gradient-to-b from-blue-600 to-blue-700 rounded-b-lg" />
+                      {/* Legs - position based on behavior */}
+                      <div className={`flex justify-center gap-2 mt-2 transition-all duration-300 ${
+                        state.aiState === 'crossing_legs' ? 'scale-90 -rotate-6' :
+                        state.aiState === 'shifting_weight' ? 'animate-pulse' :
+                        ''
+                      }`}>
+                        <div className={`w-6 h-24 bg-gradient-to-b from-blue-600 to-blue-700 rounded-b-lg ${
+                          state.aiState === 'crossing_legs' ? 'rotate-12 translate-x-2' : ''
+                        }`} />
+                        <div className={`w-6 h-24 bg-gradient-to-b from-blue-600 to-blue-700 rounded-b-lg ${
+                          state.aiState === 'crossing_legs' ? '-rotate-12 -translate-x-2' : ''
+                        }`} />
                       </div>
                     </div>
                   </div>

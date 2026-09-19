@@ -76,6 +76,8 @@ function App() {
     setStressLevel,
     eatFood,
     setCameraViewMode,
+    startSignup,
+    makePlayerSuggestion,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -195,7 +197,13 @@ function App() {
               </div>
             ) : activeView === 'social' ? (
               <div className="flex-1 p-1">
-                <SocialMediaView state={state} setActiveTab={setActiveSocialTab} setViewedProfile={setViewedProfile} />
+                <SocialMediaView 
+                  state={state} 
+                  setActiveTab={setActiveSocialTab} 
+                  setViewedProfile={setViewedProfile}
+                  startSignup={startSignup}
+                  makePlayerSuggestion={makePlayerSuggestion}
+                />
               </div>
             ) : activeView === 'heart' ? (
               <div className="flex-1 p-1">
@@ -236,6 +244,8 @@ function App() {
               onPost={handlePlayerPost}
               onComment={handlePlayerComment}
               onExit={() => setActiveSocialTab('posts')}
+              startSignup={startSignup}
+              makePlayerSuggestion={makePlayerSuggestion}
             />
           )}
         </div>

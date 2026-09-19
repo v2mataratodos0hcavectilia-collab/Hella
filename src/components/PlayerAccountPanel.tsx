@@ -6,11 +6,15 @@ interface PlayerAccountPanelProps {
   onPost: (content: string) => void;
   onComment: (postId: string, content: string) => void;
   onExit: () => void;
+  startSignup: (username: string) => void;
+  makePlayerSuggestion: (content: string) => void;
 }
 
-export default function PlayerAccountPanel({ state, onPost, onComment, onExit }: PlayerAccountPanelProps) {
+export default function PlayerAccountPanel({ state, onPost, onComment, onExit, startSignup, makePlayerSuggestion }: PlayerAccountPanelProps) {
   const [newPostContent, setNewPostContent] = useState('');
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [signupUsername, setSignupUsername] = useState('');
+  const [newSuggestion, setNewSuggestion] = useState('');
 
   const handlePost = () => {
     if (newPostContent.trim()) {
@@ -27,11 +31,79 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit }:
     }
   };
 
+  const handleSignup = () => {
+    if (signupUsername.trim()) {
+      startSignup(signupUsername.trim());
+    }
+  };
+
+  const handleMakeSuggestion = () => {
+    if (newSuggestion.trim()) {
+      makePlayerSuggestion(newSuggestion.trim());
+      setNewSuggestion('');
+    }
+  };
+
   const formatTime = (simTime: number) => {
     const hours = Math.floor(simTime / 3600) % 24;
     const minutes = Math.floor((simTime % 3600) / 60);
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
+
+  // Signup screen
+  if (!state.playerAccount.isSignedUp) {
+    return (
+      <div className="bg-gray-900 border-t border-gray-700 p-6">
+        <div className="max-w-md mx-auto">
+          <h3 className="text-2xl font-bold text-white mb-2 text-center">👤 Create Your Account</h3>
+          <p className="text-gray-400 text-sm mb-6 text-center">Join BladderChat and start interacting!</p>
+          
+          {state.playerAccount.signupProgress > 0 && state.playerAccount.signupProgress < 100 ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-400 mb-2">Setting up your account...</div>
+                <div className="text-sm text-gray-400">{state.playerAccount.signupProgress.toFixed(0)}% complete</div>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
+                  style={{ width: `${state.playerAccount.signupProgress}%` }}
+                />
+              </div>
+              <div className="text-xs text-gray-500 text-center space-y-1">
+                {state.playerAccount.signupProgress < 25 && <div>✓ Creating profile...</div>}
+                {state.playerAccount.signupProgress >= 25 && state.playerAccount.signupProgress < 50 && <div>✓ Setting up feed...</div>}
+                {state.playerAccount.signupProgress >= 50 && state.playerAccount.signupProgress < 75 && <div>✓ Connecting to community...</div>}
+                {state.playerAccount.signupProgress >= 75 && <div>✓ Finalizing setup...</div>}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                <input
+                  type="text"
+                  value={signupUsername}
+                  onChange={(e) => setSignupUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  maxLength={20}
+                />
+                <div className="text-xs text-gray-500 mt-1">{signupUsername.length} / 20 characters</div>
+              </div>
+              <button
+                onClick={handleSignup}
+                disabled={!signupUsername.trim()}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold disabled:bg-gray-700 disabled:text-gray-500 hover:bg-blue-500 transition-colors"
+              >
+                Sign Up (20 seconds)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 border-t border-gray-700 p-4">
@@ -74,6 +146,50 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit }:
             Post
           </button>
         </div>
+      </div>
+
+      {/* Make Suggestions */}
+      <div className="mb-6">
+        <h4 className="text-sm font-bold text-gray-400 mb-3">💡 Suggest Challenges</h4>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newSuggestion}
+            onChange={(e) => setNewSuggestion(e.target.value)}
+            placeholder="Suggest a challenge for Sarah..."
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+            maxLength={100}
+          />
+          <button
+            onClick={handleMakeSuggestion}
+            disabled={!newSuggestion.trim()}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold disabled:bg-gray-700 disabled:text-gray-500 hover:bg-purple-500 transition-colors text-sm"
+          >
+            Send
+          </button>
+        </div>
+        
+        {/* My Suggestions */}
+        {state.playerAccount.playerSuggestions.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="text-xs text-gray-500">Your Recent Suggestions:</div>
+            {state.playerAccount.playerSuggestions.slice(0, 5).map((suggestion) => (
+              <div key={suggestion.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-300">"{suggestion.content}"</div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      {formatTime(suggestion.timestamp)}
+                      {suggestion.accepted && (
+                        <span className="ml-2 text-green-400">✓ Accepted</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* My Posts */}

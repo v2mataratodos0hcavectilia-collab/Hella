@@ -196,6 +196,18 @@ export interface PlayerAccount {
   posts: SocialMediaPost[];
   comments: SocialMediaComment[];
   following: string[];
+  isSignedUp: boolean;
+  signupProgress: number; // 0-100 for signup animation
+  signupStartTime: number; // when signup started
+  playerSuggestions: PlayerSuggestion[];
+}
+
+export interface PlayerSuggestion {
+  id: string;
+  content: string;
+  timestamp: number;
+  accepted: boolean;
+  responseTimestamp?: number;
 }
 
 export interface FollowerSuggestion {

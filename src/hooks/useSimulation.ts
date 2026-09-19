@@ -53,6 +53,10 @@ const INITIAL_STATE: SimulationState = {
     posts: [],
     comments: [],
     following: ['Sarah_J'],
+    isSignedUp: false,
+    signupProgress: 0,
+    signupStartTime: 0,
+    playerSuggestions: [],
   },
   chatMessages: [],
   viewedProfile: null,
@@ -1029,8 +1033,11 @@ export function useSimulation() {
 
       // Social media activity
       if (!newState.isSleeping) {
+        // Cap time speed for social media at 20×
+        const socialTimeSpeed = Math.min(20, newState.timeSpeed);
+        
         // Random chance to post based on activity level
-        const postChance = 0.0002 * simDt * newState.timeSpeed;
+        const postChance = 0.0002 * simDt * socialTimeSpeed;
         if (Math.random() < postChance && newState.socialMediaPosts.length < 50) {
           const post = generateSocialMediaPost(newState);
           newState.socialMediaPosts = [post, ...newState.socialMediaPosts].slice(0, 50);
@@ -1038,7 +1045,7 @@ export function useSimulation() {
         
         // Random chance to go live - based on mood/feeling, not just bladder
         if (!newState.isLiveStreaming) {
-          let liveChance = 0.00003 * simDt * newState.timeSpeed;
+          let liveChance = 0.00003 * simDt * socialTimeSpeed;
           
           // Full bladder preference trait makes her more likely to go live when full
           if (newState.fullBladderPreference && newState.bladderVolume > newState.maxCapacity * 0.7) {
@@ -1064,12 +1071,12 @@ export function useSimulation() {
           newState.liveViewerCount = Math.max(5, newState.liveViewerCount);
           
           // Update follower count based on viewers
-          if (Math.random() < 0.01 * simDt * newState.timeSpeed) {
+          if (Math.random() < 0.01 * simDt * socialTimeSpeed) {
             newState.followerCount += Math.floor(Math.random() * 3) + 1;
           }
           
           // Generate donations during stream
-          if (Math.random() < 0.005 * simDt * newState.timeSpeed * (newState.liveViewerCount / 50)) {
+          if (Math.random() < 0.005 * simDt * socialTimeSpeed * (newState.liveViewerCount / 50)) {
             const isMega = Math.random() < 0.02; // 2% chance of mega influencer
             const donation = {
               id: `donation_${Date.now()}_${Math.random()}`,
@@ -1091,7 +1098,7 @@ export function useSimulation() {
         }
         
         // Generate follower suggestions
-        if (Math.random() < 0.001 * simDt * newState.timeSpeed && newState.followerSuggestions.length < 10) {
+        if (Math.random() < 0.001 * simDt * socialTimeSpeed && newState.followerSuggestions.length < 10) {
           const suggestion = {
             id: `suggestion_${Date.now()}_${Math.random()}`,
             follower: `Follower${Math.floor(Math.random() * 9999)}`,
@@ -1104,7 +1111,7 @@ export function useSimulation() {
 
         // AI responds to recommendations (30% chance per suggestion per minute)
         newState.followerSuggestions = newState.followerSuggestions.map(suggestion => {
-          if (!suggestion.responded && Math.random() < 0.005 * simDt * newState.timeSpeed) {
+          if (!suggestion.responded && Math.random() < 0.005 * simDt * socialTimeSpeed) {
             // Add response as a comment on the suggestion
             const response = getSuggestionResponse(suggestion.suggestion);
             return { 
@@ -1121,10 +1128,10 @@ export function useSimulation() {
         const incomeInterval = Math.min(30 * 60, 60); // Max 30 minutes, check every minute
         if (newState.simTime - newState.lastIncomeTime >= incomeInterval && newState.followerCount >= 10) {
           let incomePerMinute = 0;
-          if (newState.followerCount >= 200) incomePerMinute = 0.50;
-          else if (newState.followerCount >= 100) incomePerMinute = 0.30;
-          else if (newState.followerCount >= 50) incomePerMinute = 0.15;
-          else incomePerMinute = 0.05;
+          if (newState.followerCount >= 200) incomePerMinute = 0.15;
+          else if (newState.followerCount >= 100) incomePerMinute = 0.10;
+          else if (newState.followerCount >= 50) incomePerMinute = 0.05;
+          else incomePerMinute = 0.02;
           
           const income = incomePerMinute * incomeInterval;
           newState.money += income;
@@ -1133,7 +1140,7 @@ export function useSimulation() {
         }
 
         // Generate chat messages between AI users
-        if (Math.random() < 0.001 * simDt * newState.timeSpeed && newState.chatMessages.length < 100) {
+        if (Math.random() < 0.001 * simDt * socialTimeSpeed && newState.chatMessages.length < 100) {
           const chatUsers = ['BladderFan99', 'UrgentVibes', 'HoldingQueen', 'PeePeePooPoo', 'FullBladderClub', 'DesperateDan', 'CoffeeLover22', 'NightOwl_'];
           const chatMessages = [
             "Anyone else struggling to hold it rn? 😩",
@@ -1506,6 +1513,87 @@ export function useSimulation() {
     setState(prev => ({ ...prev, breathDeepness: Math.max(0, Math.min(100, deepness)) }));
   }, []);
 
+  const startSignup = useCallback((username: string) => {
+    setState(prev => ({
+      ...prev,
+      playerAccount: {
+        ...prev.playerAccount,
+        username,
+        signupProgress: 0,
+        signupStartTime: prev.simTime,
+      },
+    }));
+  }, []);
+
+  const makePlayerSuggestion = useCallback((content: string) => {
+    setState(prev => {
+      if (!prev.playerAccount.isSignedUp) return prev;
+      
+      const newSuggestion = {
+        id: `player_suggestion_${Date.now()}_${Math.random()}`,
+        content,
+        timestamp: prev.simTime,
+        accepted: false,
+      };
+      
+      return {
+        ...prev,
+        playerAccount: {
+          ...prev.playerAccount,
+          playerSuggestions: [newSuggestion, ...prev.playerAccount.playerSuggestions].slice(0, 20),
+        },
+      };
+    });
+  }, []);
+
+  // Process signup animation
+  useEffect(() => {
+    if (!state.playerAccount.isSignedUp && state.playerAccount.signupProgress < 100) {
+      const signupDuration = 20; // 20 seconds
+      const elapsed = state.simTime - state.playerAccount.signupStartTime;
+      const progress = Math.min(100, (elapsed / signupDuration) * 100);
+      
+      if (progress >= 100) {
+        setState(prev => ({
+          ...prev,
+          playerAccount: {
+            ...prev.playerAccount,
+            isSignedUp: true,
+            signupProgress: 100,
+          },
+        }));
+      } else if (progress !== state.playerAccount.signupProgress) {
+        setState(prev => ({
+          ...prev,
+          playerAccount: {
+            ...prev.playerAccount,
+            signupProgress: progress,
+          },
+        }));
+      }
+    }
+  }, [state.simTime, state.playerAccount.isSignedUp, state.playerAccount.signupProgress, state.playerAccount.signupStartTime]);
+
+  // Process player suggestions (AI responds to them)
+  useEffect(() => {
+    if (!state.playerAccount.isSignedUp) return;
+    
+    state.playerAccount.playerSuggestions.forEach(suggestion => {
+      if (!suggestion.accepted && Math.random() < 0.001) {
+        // AI accepts the suggestion
+        setState(prev => ({
+          ...prev,
+          playerAccount: {
+            ...prev.playerAccount,
+            playerSuggestions: prev.playerAccount.playerSuggestions.map(s =>
+              s.id === suggestion.id ? { ...s, accepted: true, responseTimestamp: prev.simTime } : s
+            ),
+          },
+        }));
+      }
+    });
+  }, [state.playerAccount.isSignedUp, state.playerAccount.playerSuggestions]);
+
   return {
     state,
     overrides,
@@ -1544,5 +1632,7 @@ export function useSimulation() {
     setStressLevel,
     eatFood,
     setCameraViewMode,
+    startSignup,
+    makePlayerSuggestion,
   };
 }
