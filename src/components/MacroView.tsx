@@ -66,6 +66,7 @@ function Character({ state }: { state: SimulationState }) {
   const groupRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Mesh>(null);
 
   useFrame(() => {
     if (groupRef.current) {
@@ -75,65 +76,97 @@ function Character({ state }: { state: SimulationState }) {
       groupRef.current.rotation.set(0, 0, 0);
       groupRef.current.position.set(0, 0, 0);
       
-      switch (state.aiState) {
-        case 'walking':
-          groupRef.current.position.x = Math.sin(t * 0.5) * 2;
-          groupRef.current.position.z = Math.cos(t * 0.5) * 2;
-          // Swing arms while walking
-          if (leftArmRef.current && rightArmRef.current) {
-            leftArmRef.current.rotation.x = Math.sin(t * 2) * 0.3;
-            rightArmRef.current.rotation.x = -Math.sin(t * 2) * 0.3;
-          }
-          break;
-        case 'pacing':
-          groupRef.current.position.x = Math.sin(t * 1.5) * 1.5;
-          if (leftArmRef.current && rightArmRef.current) {
-            leftArmRef.current.rotation.x = Math.sin(t * 3) * 0.2;
-            rightArmRef.current.rotation.x = -Math.sin(t * 3) * 0.2;
-          }
-          break;
-        case 'shifting_weight':
-          groupRef.current.rotation.z = Math.sin(t * 2) * 0.05;
-          break;
-        case 'crossing_legs':
-        case 'holding':
-          groupRef.current.rotation.z = Math.sin(t * 0.8) * 0.03;
-          groupRef.current.position.y = Math.sin(t * 1.2) * 0.02;
-          // Arms close to body when holding
-          if (leftArmRef.current && rightArmRef.current) {
-            leftArmRef.current.rotation.z = 0.2;
-            rightArmRef.current.rotation.z = -0.2;
-          }
-          break;
-        case 'sleeping':
-          groupRef.current.rotation.x = -Math.PI / 2;
-          groupRef.current.position.y = 0.2;
-          break;
-        case 'sitting':
-        case 'in_meeting':
-        case 'gaming':
-        case 'commuting':
-          groupRef.current.position.y = -0.3;
-          // Arms resting
-          if (leftArmRef.current && rightArmRef.current) {
-            leftArmRef.current.rotation.x = -0.5;
-            rightArmRef.current.rotation.x = -0.5;
-          }
-          break;
-        default:
-          groupRef.current.position.x = Math.sin(t * 0.2) * 0.5;
-          groupRef.current.position.z = Math.cos(t * 0.2) * 0.5;
-          // Idle arm sway
-          if (leftArmRef.current && rightArmRef.current) {
-            leftArmRef.current.rotation.x = Math.sin(t * 0.5) * 0.1;
-            rightArmRef.current.rotation.x = -Math.sin(t * 0.5) * 0.1;
-          }
+      // Handle death/pass out collapse
+      if (state.isDead || state.isPassedOut) {
+        // Collapse to ground
+        groupRef.current.rotation.x = -Math.PI / 2;
+        groupRef.current.position.y = 0.2;
+        // Arms limp
+        if (leftArmRef.current && rightArmRef.current) {
+          leftArmRef.current.rotation.x = 0.3;
+          leftArmRef.current.rotation.z = 0.5;
+          rightArmRef.current.rotation.x = 0.3;
+          rightArmRef.current.rotation.z = -0.5;
+        }
+      } else {
+        // Normal state handling
+        switch (state.aiState) {
+          case 'walking':
+            groupRef.current.position.x = Math.sin(t * 0.5) * 2;
+            groupRef.current.position.z = Math.cos(t * 0.5) * 2;
+            // Swing arms while walking
+            if (leftArmRef.current && rightArmRef.current) {
+              leftArmRef.current.rotation.x = Math.sin(t * 2) * 0.3;
+              rightArmRef.current.rotation.x = -Math.sin(t * 2) * 0.3;
+            }
+            break;
+          case 'pacing':
+            groupRef.current.position.x = Math.sin(t * 1.5) * 1.5;
+            if (leftArmRef.current && rightArmRef.current) {
+              leftArmRef.current.rotation.x = Math.sin(t * 3) * 0.2;
+              rightArmRef.current.rotation.x = -Math.sin(t * 3) * 0.2;
+            }
+            break;
+          case 'shifting_weight':
+            groupRef.current.rotation.z = Math.sin(t * 2) * 0.05;
+            break;
+          case 'crossing_legs':
+          case 'holding':
+            groupRef.current.rotation.z = Math.sin(t * 0.8) * 0.03;
+            groupRef.current.position.y = Math.sin(t * 1.2) * 0.02;
+            // Arms close to body when holding
+            if (leftArmRef.current && rightArmRef.current) {
+              leftArmRef.current.rotation.z = 0.2;
+              rightArmRef.current.rotation.z = -0.2;
+            }
+            break;
+          case 'sleeping':
+            groupRef.current.rotation.x = -Math.PI / 2;
+            groupRef.current.position.y = 0.2;
+            break;
+          case 'sitting':
+          case 'in_meeting':
+          case 'gaming':
+          case 'commuting':
+            groupRef.current.position.y = -0.3;
+            // Arms resting
+            if (leftArmRef.current && rightArmRef.current) {
+              leftArmRef.current.rotation.x = -0.5;
+              rightArmRef.current.rotation.x = -0.5;
+            }
+            break;
+          default:
+            groupRef.current.position.x = Math.sin(t * 0.2) * 0.5;
+            groupRef.current.position.z = Math.cos(t * 0.2) * 0.5;
+            // Idle arm sway
+            if (leftArmRef.current && rightArmRef.current) {
+              leftArmRef.current.rotation.x = Math.sin(t * 0.5) * 0.1;
+              rightArmRef.current.rotation.x = -Math.sin(t * 0.5) * 0.1;
+            }
+        }
+        
+        // Tremble when high urge
+        if (state.urgeSignal > 80) {
+          const tremble = Math.sin(Date.now() * 0.01) * 0.02 * (state.urgeSignal / 100);
+          groupRef.current.position.x += tremble;
+        }
       }
       
-      // Tremble when high urge
-      if (state.urgeSignal > 80) {
-        const tremble = Math.sin(Date.now() * 0.01) * 0.02 * (state.urgeSignal / 100);
-        groupRef.current.position.x += tremble;
+      // Update head color based on death state
+      if (headRef.current) {
+        const material = headRef.current.material as THREE.MeshStandardMaterial;
+        if (state.isDead) {
+          material.color.set('#4a6fa5'); // Blue face when dead
+        } else if (state.isDying) {
+          // Gradually turn pale/blue when dying
+          const blueAmount = 1 - (state.consciousnessLevel / 100);
+          const r = 0.957 - (blueAmount * 0.5);
+          const g = 0.761 - (blueAmount * 0.3);
+          const b = 0.631 + (blueAmount * 0.3);
+          material.color.setRGB(r, g, b);
+        } else {
+          material.color.set('#f4c2a1'); // Normal skin color
+        }
       }
     }
   });
@@ -160,7 +193,7 @@ function Character({ state }: { state: SimulationState }) {
         </mesh>
         
         {/* Head */}
-        <mesh position={[0, 1.5, 0]}>
+        <mesh ref={headRef} position={[0, 1.5, 0]}>
           <sphereGeometry args={[0.18, 16, 16]} />
           <meshStandardMaterial color="#f4c2a1" roughness={0.7} />
         </mesh>
