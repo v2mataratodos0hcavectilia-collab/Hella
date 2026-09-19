@@ -262,6 +262,7 @@ function App() {
             manualReset={manualReset}
             giveDrink={giveDrink}
             giveDrug={giveDrug}
+            eatFood={eatFood}
             setTrainingSpeed={setTrainingSpeed}
             toggleFullBladderPreference={toggleFullBladderPreference}
             setHeartRateControl={setHeartRateControl}

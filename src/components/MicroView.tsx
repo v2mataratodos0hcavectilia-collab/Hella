@@ -132,15 +132,29 @@ function BladderMesh({ state }: { state: SimulationState }) {
   );
 }
 
-function UreterDrip() {
+function UreterDrip({ state }: { state: SimulationState }) {
   const dropsRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (dropsRef.current) {
       dropsRef.current.children.forEach((child, i) => {
         const mesh = child as THREE.Mesh;
-        const t = ((Date.now() * 0.001 + i * 0.5) % 2) / 2;
-        mesh.position.y = 1.5 - t * 1.5;
+        // Flow rate affects speed
+        const flowSpeed = 0.5 + (state.urethralFlow * 0.1);
+        const t = ((Date.now() * 0.001 * flowSpeed + i * 0.5) % 2) / 2;
+        
+        // Follow curved path along ureter
+        const startX = i === 0 ? -0.8 : 0.8;
+        const endX = 0;
+        const startY = 1.5;
+        const endY = 0.2;
+        
+        // Curved interpolation
+        const curve = Math.sin(t * Math.PI);
+        mesh.position.x = startX + (endX - startX) * t + curve * 0.1;
+        mesh.position.y = startY + (endY - startY) * t;
+        mesh.position.z = curve * 0.05;
+        
         mesh.scale.setScalar(Math.sin(t * Math.PI) * 0.5);
         const mat = mesh.material as THREE.MeshStandardMaterial;
         mat.opacity = Math.sin(t * Math.PI) * 0.8;
@@ -166,6 +180,7 @@ function Urethra({ state }: { state: SimulationState }) {
   const sphincter2Ref = useRef<THREE.Mesh>(null);
   const sphMat1Ref = useRef<THREE.MeshStandardMaterial>(null);
   const sphMat2Ref = useRef<THREE.MeshStandardMaterial>(null);
+  const flowRef = useRef<THREE.Mesh>(null);
   
   const sphincterTension = state.sphincterLocked ? 1 : (1 - state.sphincterFatigue / 100);
   const trembling = state.sphincterTrembling;
@@ -174,10 +189,14 @@ function Urethra({ state }: { state: SimulationState }) {
     if (tubeRef.current) {
       const tremble = trembling ? Math.sin(Date.now() * 0.02) * 0.02 : 0;
       tubeRef.current.position.x = tremble;
-      const squeeze = 0.08 + sphincterTension * 0.06;
+      // More realistic urethra thickness
+      const baseThickness = 0.12;
+      const squeeze = baseThickness + sphincterTension * 0.08;
       tubeRef.current.scale.x = squeeze;
       tubeRef.current.scale.z = squeeze;
     }
+    
+    // Sphincter color based on fatigue
     const fatigue = state.sphincterFatigue;
     let r = 1, g = 0.53, b = 0.53;
     if (fatigue > 80) { r = 1; g = 0.27; b = 0.27; }
@@ -186,32 +205,61 @@ function Urethra({ state }: { state: SimulationState }) {
     if (sphMat1Ref.current) sphMat1Ref.current.color.setRGB(r, g, b);
     if (sphMat2Ref.current) sphMat2Ref.current.color.setRGB(r, g, b);
 
+    // Sphincter tension affects size
     if (sphincter1Ref.current) {
       sphincter1Ref.current.scale.setScalar(0.8 + sphincterTension * 0.4);
     }
     if (sphincter2Ref.current) {
       sphincter2Ref.current.scale.setScalar(0.8 + sphincterTension * 0.4);
     }
+    
+    // Flow animation based on flow rate
+    if (flowRef.current && state.urethralFlow > 0) {
+      const flowScale = Math.min(1, state.urethralFlow / 25); // Normalize to max flow
+      flowRef.current.scale.x = 0.5 + flowScale * 0.5;
+      flowRef.current.scale.z = 0.5 + flowScale * 0.5;
+      const mat = flowRef.current.material as THREE.MeshStandardMaterial;
+      mat.opacity = 0.4 + flowScale * 0.4;
+    }
   });
 
   return (
     <group position={[0, -0.8, 0]}>
+      {/* More realistic urethra - thicker, anatomical shape */}
       <mesh ref={tubeRef}>
-        <cylinderGeometry args={[0.08, 0.06, 0.8, 16]} />
-        <meshStandardMaterial color="#cc6666" transparent opacity={0.7} roughness={0.6} />
+        <cylinderGeometry args={[0.1, 0.08, 0.8, 24]} />
+        <meshStandardMaterial 
+          color="#d4737d" 
+          transparent 
+          opacity={0.75} 
+          roughness={0.5}
+          metalness={0.1}
+        />
       </mesh>
-      <mesh ref={sphincter1Ref} position={[0, 0.2, 0]}>
-        <torusGeometry args={[0.12, 0.04, 16, 32]} />
-        <meshStandardMaterial ref={sphMat1Ref} color="#ff8888" roughness={0.5} />
-      </mesh>
-      <mesh ref={sphincter2Ref} position={[0, -0.1, 0]}>
+      
+      {/* Internal sphincter - rotated to be horizontal */}
+      <mesh ref={sphincter1Ref} position={[0, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.14, 0.05, 16, 32]} />
-        <meshStandardMaterial ref={sphMat2Ref} color="#ff8888" roughness={0.5} />
+        <meshStandardMaterial ref={sphMat1Ref} color="#ff8888" roughness={0.4} metalness={0.2} />
       </mesh>
+      
+      {/* External sphincter - rotated to be horizontal */}
+      <mesh ref={sphincter2Ref} position={[0, -0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.16, 0.06, 16, 32]} />
+        <meshStandardMaterial ref={sphMat2Ref} color="#ff8888" roughness={0.4} metalness={0.2} />
+      </mesh>
+      
+      {/* Flow visualization - scales with flow rate */}
       {state.urethralFlow > 0 && (
-        <mesh position={[0, -0.5, 0]}>
-          <cylinderGeometry args={[0.02, 0.04, 0.3, 8]} />
-          <meshStandardMaterial color="#ffdd00" transparent opacity={0.6} />
+        <mesh ref={flowRef} position={[0, -0.5, 0]}>
+          <cylinderGeometry args={[0.04, 0.06, 0.3, 12]} />
+          <meshStandardMaterial 
+            color="#ffdd00" 
+            transparent 
+            opacity={0.6}
+            emissive="#ffaa00"
+            emissiveIntensity={0.3}
+          />
         </mesh>
       )}
     </group>
@@ -382,7 +430,7 @@ function Scene({ state }: { state: SimulationState }) {
       <BloodVessels />
       <NerveSignals state={state} />
       <BladderMesh state={state} />
-      <UreterDrip />
+      <UreterDrip state={state} />
       <Urethra state={state} />
       <PressureOverlay state={state} />
     </>

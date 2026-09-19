@@ -249,7 +249,79 @@ export interface RelationshipMessage {
 }
 
 // Food Types
-export type FoodType = 'spicy' | 'salty' | 'sweet' | 'healthy' | 'junk' | 'diuretic_food';
+export type FoodType = 
+  // Breakfast
+  | 'eggs' | 'bacon' | 'cereal' | 'oatmeal' | 'toast' | 'pancakes' | 'yogurt' | 'fruit'
+  // Lunch/Dinner
+  | 'sandwich' | 'salad' | 'pasta' | 'rice' | 'chicken' | 'fish' | 'steak' | 'soup'
+  // Snacks
+  | 'chips' | 'cookies' | 'nuts' | 'chocolate' | 'fruit_snack' | 'granola_bar'
+  // Diuretic Foods
+  | 'watermelon' | 'cucumber' | 'celery' | 'asparagus' | 'cranberries' | 'coffee_beans'
+  // Spicy Foods
+  | 'spicy_curry' | 'hot_wings' | 'jalapenos' | 'spicy_soup'
+  // Healthy
+  | 'vegetables' | 'lean_protein' | 'whole_grains' | 'berries';
+
+export interface FoodEffect {
+  name: string;
+  category: string;
+  fillMultiplier: number; // Effect on bladder fill rate
+  urgeMultiplier: number; // Effect on urge signal
+  stressEffect: number; // -10 to +10 (negative = calming, positive = stressful)
+  healthEffect: number; // -10 to +10 (negative = unhealthy, positive = healthy)
+  description: string;
+}
+
+export const FOOD_PROPERTIES: Record<FoodType, FoodEffect> = {
+  // Breakfast
+  eggs: { name: 'Eggs', category: 'Breakfast', fillMultiplier: 1.0, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 5, description: 'Protein-rich breakfast' },
+  bacon: { name: 'Bacon', category: 'Breakfast', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: 2, healthEffect: -3, description: 'Salty and fatty' },
+  cereal: { name: 'Cereal', category: 'Breakfast', fillMultiplier: 1.2, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 2, description: 'Quick and easy' },
+  oatmeal: { name: 'Oatmeal', category: 'Breakfast', fillMultiplier: 1.0, urgeMultiplier: 0.9, stressEffect: -2, healthEffect: 7, description: 'Filling and healthy' },
+  toast: { name: 'Toast', category: 'Breakfast', fillMultiplier: 0.9, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 1, description: 'Simple carbs' },
+  pancakes: { name: 'Pancakes', category: 'Breakfast', fillMultiplier: 1.3, urgeMultiplier: 1.1, stressEffect: -1, healthEffect: -2, description: 'Sweet and filling' },
+  yogurt: { name: 'Yogurt', category: 'Breakfast', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: -1, healthEffect: 6, description: 'Probiotic and light' },
+  fruit: { name: 'Fruit', category: 'Breakfast', fillMultiplier: 1.0, urgeMultiplier: 0.9, stressEffect: -2, healthEffect: 8, description: 'Natural and healthy' },
+  
+  // Lunch/Dinner
+  sandwich: { name: 'Sandwich', category: 'Lunch/Dinner', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 2, description: 'Balanced meal' },
+  salad: { name: 'Salad', category: 'Lunch/Dinner', fillMultiplier: 0.9, urgeMultiplier: 0.9, stressEffect: -2, healthEffect: 8, description: 'Light and healthy' },
+  pasta: { name: 'Pasta', category: 'Lunch/Dinner', fillMultiplier: 1.3, urgeMultiplier: 1.1, stressEffect: -1, healthEffect: 0, description: 'Carb-heavy' },
+  rice: { name: 'Rice', category: 'Lunch/Dinner', fillMultiplier: 1.2, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 2, description: 'Staple carb' },
+  chicken: { name: 'Chicken', category: 'Lunch/Dinner', fillMultiplier: 1.0, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 6, description: 'Lean protein' },
+  fish: { name: 'Fish', category: 'Lunch/Dinner', fillMultiplier: 1.0, urgeMultiplier: 1.0, stressEffect: -1, healthEffect: 7, description: 'Omega-3 rich' },
+  steak: { name: 'Steak', category: 'Lunch/Dinner', fillMultiplier: 1.2, urgeMultiplier: 1.1, stressEffect: 1, healthEffect: 3, description: 'Heavy protein' },
+  soup: { name: 'Soup', category: 'Lunch/Dinner', fillMultiplier: 1.4, urgeMultiplier: 1.2, stressEffect: -2, healthEffect: 4, description: 'Warm and hydrating' },
+  
+  // Snacks
+  chips: { name: 'Chips', category: 'Snacks', fillMultiplier: 1.1, urgeMultiplier: 1.1, stressEffect: 2, healthEffect: -5, description: 'Salty and crunchy' },
+  cookies: { name: 'Cookies', category: 'Snacks', fillMultiplier: 1.2, urgeMultiplier: 1.1, stressEffect: -2, healthEffect: -4, description: 'Sweet treat' },
+  nuts: { name: 'Nuts', category: 'Snacks', fillMultiplier: 1.0, urgeMultiplier: 1.0, stressEffect: -1, healthEffect: 5, description: 'Healthy fats' },
+  chocolate: { name: 'Chocolate', category: 'Snacks', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: -3, healthEffect: -2, description: 'Mood booster' },
+  fruit_snack: { name: 'Fruit Snack', category: 'Snacks', fillMultiplier: 1.0, urgeMultiplier: 0.9, stressEffect: -1, healthEffect: 4, description: 'Light and sweet' },
+  granola_bar: { name: 'Granola Bar', category: 'Snacks', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: 0, healthEffect: 3, description: 'Quick energy' },
+  
+  // Diuretic Foods
+  watermelon: { name: 'Watermelon', category: 'Diuretic', fillMultiplier: 1.8, urgeMultiplier: 1.5, stressEffect: -1, healthEffect: 7, description: 'High water content' },
+  cucumber: { name: 'Cucumber', category: 'Diuretic', fillMultiplier: 1.6, urgeMultiplier: 1.4, stressEffect: -2, healthEffect: 6, description: 'Very hydrating' },
+  celery: { name: 'Celery', category: 'Diuretic', fillMultiplier: 1.5, urgeMultiplier: 1.3, stressEffect: -1, healthEffect: 5, description: 'Natural diuretic' },
+  asparagus: { name: 'Asparagus', category: 'Diuretic', fillMultiplier: 1.7, urgeMultiplier: 1.6, stressEffect: 0, healthEffect: 6, description: 'Strong diuretic' },
+  cranberries: { name: 'Cranberries', category: 'Diuretic', fillMultiplier: 1.6, urgeMultiplier: 1.5, stressEffect: 0, healthEffect: 7, description: 'Urinary tract health' },
+  coffee_beans: { name: 'Coffee Beans', category: 'Diuretic', fillMultiplier: 1.9, urgeMultiplier: 1.7, stressEffect: 3, healthEffect: 2, description: 'Concentrated caffeine' },
+  
+  // Spicy Foods
+  spicy_curry: { name: 'Spicy Curry', category: 'Spicy', fillMultiplier: 1.2, urgeMultiplier: 1.4, stressEffect: 5, healthEffect: 3, description: 'Very spicy' },
+  hot_wings: { name: 'Hot Wings', category: 'Spicy', fillMultiplier: 1.1, urgeMultiplier: 1.3, stressEffect: 6, healthEffect: -2, description: 'Extremely hot' },
+  jalapenos: { name: 'Jalapeños', category: 'Spicy', fillMultiplier: 1.1, urgeMultiplier: 1.2, stressEffect: 4, healthEffect: 2, description: 'Moderately spicy' },
+  spicy_soup: { name: 'Spicy Soup', category: 'Spicy', fillMultiplier: 1.4, urgeMultiplier: 1.3, stressEffect: 4, healthEffect: 3, description: 'Hot and hydrating' },
+  
+  // Healthy
+  vegetables: { name: 'Vegetables', category: 'Healthy', fillMultiplier: 1.0, urgeMultiplier: 0.9, stressEffect: -3, healthEffect: 9, description: 'Very healthy' },
+  lean_protein: { name: 'Lean Protein', category: 'Healthy', fillMultiplier: 1.0, urgeMultiplier: 1.0, stressEffect: -1, healthEffect: 8, description: 'Muscle building' },
+  whole_grains: { name: 'Whole Grains', category: 'Healthy', fillMultiplier: 1.1, urgeMultiplier: 1.0, stressEffect: -2, healthEffect: 7, description: 'Complex carbs' },
+  berries: { name: 'Berries', category: 'Healthy', fillMultiplier: 1.0, urgeMultiplier: 0.9, stressEffect: -2, healthEffect: 9, description: 'Antioxidant rich' },
+};
 
 // Training Types
 export type TrainingMethod = 'kegels' | 'meditation' | 'cold_exposure' | 'interval' | 'none';

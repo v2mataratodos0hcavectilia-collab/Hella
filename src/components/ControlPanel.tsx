@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS, DrugType, DRUG_PROPERTIES } from '../types';
+import { SimulationState, FluidType, WardrobeType, Posture, LocationType, TIME_SPEEDS, DrugType, DRUG_PROPERTIES, FoodType, FOOD_PROPERTIES } from '../types';
 
 interface PlayerOverrides {
   urgeSignal: boolean;
@@ -30,6 +30,7 @@ interface ControlPanelProps {
   manualReset: () => void;
   giveDrink: (type: FluidType) => void;
   giveDrug: (type: DrugType) => void;
+  eatFood: (type: FoodType) => void;
   setTrainingSpeed: (v: number) => void;
   toggleFullBladderPreference: () => void;
   setHeartRateControl: (bpm: number | null) => void;
@@ -59,6 +60,7 @@ export default function ControlPanel({
   manualReset,
   giveDrink,
   giveDrug,
+  eatFood,
   setTrainingSpeed,
   toggleFullBladderPreference,
   setHeartRateControl,
@@ -264,6 +266,131 @@ export default function ControlPanel({
         {state.lastDrinkType && (
           <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-700">
             Last: {state.lastDrinkType.replace('_', ' ')} ({state.diureticMultiplier.toFixed(1)}× fill)
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Food - Collapsible */}
+      <CollapsibleSection title="🍽️ FOOD" defaultOpen={false}>
+        <div className="space-y-2">
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Breakfast</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['eggs', 'bacon', 'cereal', 'oatmeal', 'toast', 'pancakes', 'yogurt', 'fruit'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Stress: ${props.stressEffect > 0 ? '+' : ''}${props.stressEffect}`}
+                  >
+                    {type === 'eggs' ? '🥚' : type === 'bacon' ? '🥓' : type === 'cereal' ? '🥣' : type === 'oatmeal' ? '🥣' : type === 'toast' ? '🍞' : type === 'pancakes' ? '🥞' : type === 'yogurt' ? '🥛' : '🍎'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Lunch/Dinner</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['sandwich', 'salad', 'pasta', 'rice', 'chicken', 'fish', 'steak', 'soup'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Stress: ${props.stressEffect > 0 ? '+' : ''}${props.stressEffect}`}
+                  >
+                    {type === 'sandwich' ? '🥪' : type === 'salad' ? '🥗' : type === 'pasta' ? '🍝' : type === 'rice' ? '🍚' : type === 'chicken' ? '🍗' : type === 'fish' ? '🐟' : type === 'steak' ? '🥩' : '🍲'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Snacks</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['chips', 'cookies', 'nuts', 'chocolate', 'fruit_snack', 'granola_bar'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Stress: ${props.stressEffect > 0 ? '+' : ''}${props.stressEffect}`}
+                  >
+                    {type === 'chips' ? '🍟' : type === 'cookies' ? '🍪' : type === 'nuts' ? '🥜' : type === 'chocolate' ? '🍫' : type === 'fruit_snack' ? '🍇' : '🥜'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-orange-400 mb-1">⚠️ Diuretic (High Fill)</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['watermelon', 'cucumber', 'celery', 'asparagus', 'cranberries', 'coffee_beans'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-orange-900/30 text-orange-200 hover:bg-orange-800/40"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Urge: ${props.urgeMultiplier}×`}
+                  >
+                    {type === 'watermelon' ? '🍉' : type === 'cucumber' ? '🥒' : type === 'celery' ? '🥬' : type === 'asparagus' ? '🌿' : type === 'cranberries' ? '🫐' : '☕'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-red-400 mb-1">🌶️ Spicy (High Urge)</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['spicy_curry', 'hot_wings', 'jalapenos', 'spicy_soup'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-red-900/30 text-red-200 hover:bg-red-800/40"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Urge: ${props.urgeMultiplier}× | Stress: +${props.stressEffect}`}
+                  >
+                    {type === 'spicy_curry' ? '🍛' : type === 'hot_wings' ? '🍗' : type === 'jalapenos' ? '🌶️' : '🍲'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-green-400 mb-1">🥗 Healthy</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['vegetables', 'lean_protein', 'whole_grains', 'berries'] as const).map(type => {
+                const props = FOOD_PROPERTIES[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => eatFood(type)}
+                    className="px-1 py-1.5 rounded text-xs bg-green-900/30 text-green-200 hover:bg-green-800/40"
+                    title={`${props.name}\n${props.category}\n${props.description}\nFill: ${props.fillMultiplier}× | Health: +${props.healthEffect}`}
+                  >
+                    {type === 'vegetables' ? '🥦' : type === 'lean_protein' ? '🍖' : type === 'whole_grains' ? '🌾' : '🫐'}
+                    <br />{props.name.substring(0, 7)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        {state.lastFoodEaten && (
+          <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-700">
+            Last: {FOOD_PROPERTIES[state.lastFoodEaten].name} ({FOOD_PROPERTIES[state.lastFoodEaten].fillMultiplier}× fill)
           </div>
         )}
       </CollapsibleSection>

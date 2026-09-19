@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug, TrainingMethod, WeatherType, FoodType } from '../types';
+import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug, TrainingMethod, WeatherType, FoodType, FOOD_PROPERTIES } from '../types';
 import { DONATION_MESSAGES, MEGA_INFLUENCER_NAMES, FOLLOWER_SUGGESTION_TEMPLATES, POST_TEMPLATES } from '../socialContent';
 import { ACHIEVEMENTS } from '../achievements';
 
@@ -506,8 +506,8 @@ export function useSimulation() {
       
       // Random food events
       if (Math.random() < 0.0002 * dt * s.timeSpeed) {
-        const foods: Array<'spicy' | 'salty' | 'sweet' | 'healthy' | 'junk' | 'diuretic_food'> = ['spicy', 'salty', 'sweet', 'healthy', 'junk', 'diuretic_food'];
-        newState.lastFoodEaten = foods[Math.floor(Math.random() * foods.length)];
+        const allFoods = Object.keys(FOOD_PROPERTIES) as FoodType[];
+        newState.lastFoodEaten = allFoods[Math.floor(Math.random() * allFoods.length)];
         newState.lastFoodTime = s.simTime;
       }
       
@@ -625,13 +625,9 @@ export function useSimulation() {
       
       // Food effects (lasts 2 hours after eating)
       if (newState.lastFoodEaten && newState.simTime - newState.lastFoodTime < 7200) {
-        if (newState.lastFoodEaten === 'spicy') {
-          effectiveFillRate *= 1.2; // Spicy food increases urgency
-        } else if (newState.lastFoodEaten === 'diuretic_food') {
-          effectiveFillRate *= 1.4; // Diuretic foods increase fill rate significantly
-        } else if (newState.lastFoodEaten === 'healthy') {
-          effectiveFillRate *= 0.9; // Healthy food slightly decreases fill rate
-        }
+        const foodProps = FOOD_PROPERTIES[newState.lastFoodEaten];
+        effectiveFillRate *= foodProps.fillMultiplier;
+        newState.stressLevel = Math.max(0, Math.min(100, newState.stressLevel + foodProps.stressEffect * 0.1));
       }
       
       // Activity-based fill rate (posture affects it)
@@ -815,16 +811,37 @@ export function useSimulation() {
         }
       });
 
-      // Heart rate and breathing
+      // Heart rate and breathing with natural variation
       const urgencyFactor = newState.urgeSignal / 100;
-      newState.heartRate = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0) + totalDrugHeartRate;
-      newState.breathingRate = 14 + urgencyFactor * 12 + totalDrugBreathing;
+      const baseHR = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0) + totalDrugHeartRate;
+      const baseBR = 14 + urgencyFactor * 12 + totalDrugBreathing;
+      
+      // Add natural variation (±5% fluctuation)
+      const hrVariation = (Math.sin(newState.simTime * 0.1) * 0.05 + 1);
+      const brVariation = (Math.sin(newState.simTime * 0.15) * 0.05 + 1);
+      
+      newState.heartRate = Math.max(0, baseHR * hrVariation);
+      newState.breathingRate = Math.max(0, baseBR * brVariation);
+      
+      // Posture effects on vitals
+      if (newState.posture === 'running') {
+        newState.heartRate *= 1.3;
+        newState.breathingRate *= 1.4;
+      } else if (newState.posture === 'walking') {
+        newState.heartRate *= 1.1;
+        newState.breathingRate *= 1.1;
+      } else if (newState.posture === 'lying_down' || newState.isSleeping) {
+        newState.heartRate *= 0.85;
+        newState.breathingRate *= 0.9;
+      }
 
-      // Blood pressure calculation (affected by heart rate and heart beat strength)
-      // Base: 120 mmHg, increases with heart rate and beat strength
-      const heartRateFactor = (newState.heartRate - 72) / 72; // normalized around 72 BPM
-      const beatStrengthFactor = (newState.heartBeatStrength - 50) / 50; // normalized around 50%
-      newState.bloodPressure = 120 + (heartRateFactor * 40) + (beatStrengthFactor * 30);
+      // Blood pressure calculation (heavily influenced by heart rate and beat strength)
+      // At 0 BPM, blood pressure should be 0 (no blood flow)
+      // Formula: BP = (heartRate / 72) × (beatStrength / 50) × 120
+      // This ensures at 0 BPM, BP = 0, and at normal (72 BPM, 50% strength), BP = 120
+      const hrFactor = newState.heartRate / 72;
+      const strengthFactor = newState.heartBeatStrength / 50;
+      newState.bloodPressure = hrFactor * strengthFactor * 120;
       
       // Blood O2 level calculation (affected by breathing rate and breath deepness)
       // When breathing normally (12-20 BrPM, 50% deepness), O2 stays at 98%
