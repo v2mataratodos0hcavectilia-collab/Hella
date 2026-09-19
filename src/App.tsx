@@ -40,6 +40,8 @@ function App() {
     setActiveSocialTab,
     playerPost,
     playerComment,
+    setHeartRateControl,
+    setBreathingControl,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -215,6 +217,8 @@ function App() {
             giveDrug={giveDrug}
             setTrainingSpeed={setTrainingSpeed}
             toggleFullBladderPreference={toggleFullBladderPreference}
+            setHeartRateControl={setHeartRateControl}
+            setBreathingControl={setBreathingControl}
           />
         </div>
       </div>

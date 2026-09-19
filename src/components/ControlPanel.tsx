@@ -32,6 +32,8 @@ interface ControlPanelProps {
   giveDrug: (type: DrugType) => void;
   setTrainingSpeed: (v: number) => void;
   toggleFullBladderPreference: () => void;
+  setHeartRateControl: (bpm: number | null) => void;
+  setBreathingControl: (brpm: number | null) => void;
 }
 
 export default function ControlPanel({
@@ -56,6 +58,8 @@ export default function ControlPanel({
   giveDrug,
   setTrainingSpeed,
   toggleFullBladderPreference,
+  setHeartRateControl,
+  setBreathingControl,
 }: ControlPanelProps) {
   return (
     <div className="h-full overflow-y-auto bg-gray-900/95 border-l border-gray-700 p-3 space-y-4 text-sm font-mono">
@@ -617,6 +621,65 @@ export default function ControlPanel({
           )}
         </button>
       </Section>
+
+      {/* Nanobot Controls */}
+      {state.nanobotsActive && (
+        <Section title="🤖 NANOBOT CONTROL">
+          <div className="space-y-3">
+            <div className="text-[10px] text-cyan-400 bg-cyan-900/20 p-2 rounded">
+              ⚡ Nanobots active - You have direct control over vitals
+            </div>
+            
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">
+                Heart Rate: {state.playerHeartRateControl !== null ? `${state.playerHeartRateControl} BPM` : 'Auto'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="range"
+                  min="30"
+                  max="250"
+                  value={state.playerHeartRateControl ?? state.heartRate}
+                  onChange={(e) => setHeartRateControl(Number(e.target.value))}
+                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <button
+                  onClick={() => setHeartRateControl(null)}
+                  className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+                >
+                  Auto
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">
+                Breathing: {state.playerBreathingControl !== null ? `${state.playerBreathingControl} BrPM` : 'Auto'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="range"
+                  min="3"
+                  max="40"
+                  value={state.playerBreathingControl ?? state.breathingRate}
+                  onChange={(e) => setBreathingControl(Number(e.target.value))}
+                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <button
+                  onClick={() => setBreathingControl(null)}
+                  className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+                >
+                  Auto
+                </button>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-gray-500">
+              ⚠️ Warning: Extreme values can cause pass out or death
+            </div>
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
