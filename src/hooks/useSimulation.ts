@@ -412,7 +412,8 @@ export function useSimulation() {
     const distractionSuppression = 1 - (distraction / 200);
     baseUrge *= distractionSuppression;
     if (fluidProps?.urgeMultiplier) baseUrge *= fluidProps.urgeMultiplier;
-    return Math.min(120, Math.max(0, baseUrge));
+    // Cap at 100% to prevent vitals from going crazy
+    return Math.min(100, Math.max(0, baseUrge));
   }, []);
 
   const updateAI = useCallback((s: SimulationState, dt: number, playerOverrides: PlayerOverrides): SimulationState => {
@@ -691,16 +692,15 @@ export function useSimulation() {
           if (fillRatio > 0.7) {
             // Likes being full - extremely calm, relaxed, and thinks clearly
             newState.urgeSignal *= 0.2; // Very low urge perception
+            newState.urgeSignal = Math.min(100, newState.urgeSignal); // Cap at 100%
             newState.cognitiveState = 'relaxed';
             newState.distractionLevel = Math.max(newState.distractionLevel, 80);
-            // Clear thinking at high urge - no confusion or desperation
-            newState.heartRate -= 10;
-            newState.breathingRate -= 3;
+            // Note: Heart rate and breathing adjustments moved to vitals calculation
           } else if (fillRatio < 0.2) {
             // Anxious when empty - increased stress
             newState.urgeSignal = Math.max(newState.urgeSignal, 60);
-            newState.heartRate += 20; // Anxiety increases heart rate
-            newState.breathingRate += 5; // Anxiety increases breathing
+            newState.urgeSignal = Math.min(100, newState.urgeSignal); // Cap at 100%
+            // Note: Heart rate and breathing adjustments moved to vitals calculation
           }
           
           // HIGH URGE = CLEAR THINKING (trait-specific behavior)
@@ -719,6 +719,7 @@ export function useSimulation() {
       // False alarm override
       if (newState.falseAlarm) {
         newState.urgeSignal = Math.max(newState.urgeSignal, 80);
+        newState.urgeSignal = Math.min(100, newState.urgeSignal); // Cap at 100%
       }
 
       // Sphincter fatigue
@@ -789,9 +790,7 @@ export function useSimulation() {
         if (props.suppressesUrge) anyDrugSuppressesUrge = true;
       });
 
-      // Apply drug effects to vitals
-      newState.heartRate += totalDrugHeartRate;
-      newState.breathingRate += totalDrugBreathing;
+      // Apply drug effects to sphincter fatigue
       newState.sphincterFatigue = Math.min(100, newState.sphincterFatigue + totalDrugSphincterRelaxation * simDt * 0.1);
 
       // Apply drug effects to fill rate
@@ -810,33 +809,89 @@ export function useSimulation() {
         if (props.overdoseRisk && doses >= props.overdoseThreshold) {
           newState.isOverdosing = true;
           newState.overdoseDrug = drugType as DrugType;
-          newState.heartRate += 50;
-          newState.breathingRate += 10;
         }
       });
 
-      // Heart rate and breathing with natural variation
-      const urgencyFactor = newState.urgeSignal / 100;
-      const baseHR = 72 + urgencyFactor * 40 + (newState.sphincterTrembling ? 10 : 0) + totalDrugHeartRate;
-      const baseBR = 14 + urgencyFactor * 12 + totalDrugBreathing;
+      // Calculate realistic heart rate
+      const urgencyFactor = Math.min(1, newState.urgeSignal / 100); // Cap at 1.0
+      const baseHR = 72; // Resting heart rate
+      let heartRate = baseHR;
       
-      // Add natural variation (±5% fluctuation)
-      const hrVariation = (Math.sin(newState.simTime * 0.1) * 0.05 + 1);
-      const brVariation = (Math.sin(newState.simTime * 0.15) * 0.05 + 1);
+      // Urge/stress effect (realistic: +10-30 BPM when stressed)
+      heartRate += urgencyFactor * 30;
       
-      newState.heartRate = Math.max(0, baseHR * hrVariation);
-      newState.breathingRate = Math.max(0, baseBR * brVariation);
+      // Sphincter trembling adds stress
+      if (newState.sphincterTrembling) {
+        heartRate += 15;
+      }
       
-      // Posture effects on vitals
+      // Drug effects (already calculated above)
+      heartRate += totalDrugHeartRate;
+      
+      // Overdose effect
+      if (newState.isOverdosing) {
+        heartRate += 40;
+      }
+      
+      // Posture effects
       if (newState.posture === 'running') {
-        newState.heartRate *= 1.3;
-        newState.breathingRate *= 1.4;
+        heartRate *= 1.5; // Running: 120-180 BPM typical
       } else if (newState.posture === 'walking') {
-        newState.heartRate *= 1.1;
-        newState.breathingRate *= 1.1;
+        heartRate *= 1.2; // Walking: 90-110 BPM typical
       } else if (newState.posture === 'lying_down' || newState.isSleeping) {
-        newState.heartRate *= 0.85;
-        newState.breathingRate *= 0.9;
+        heartRate *= 0.85; // Resting/sleeping: 60-70 BPM
+      }
+      
+      // Natural variation (±3% for realism)
+      const hrVariation = (Math.sin(newState.simTime * 0.1) * 0.03 + 1);
+      heartRate *= hrVariation;
+      
+      // Clamp to realistic range (40-220 BPM)
+      newState.heartRate = Math.max(40, Math.min(220, heartRate));
+
+      // Calculate realistic breathing rate
+      const baseBR = 14; // Resting breathing rate
+      let breathingRate = baseBR;
+      
+      // Urge/stress effect (realistic: +4-10 BrPM when stressed)
+      breathingRate += urgencyFactor * 10;
+      
+      // Drug effects
+      breathingRate += totalDrugBreathing;
+      
+      // Overdose effect
+      if (newState.isOverdosing) {
+        breathingRate += 8;
+      }
+      
+      // Posture effects
+      if (newState.posture === 'running') {
+        breathingRate *= 2.0; // Running: 30-40 BrPM
+      } else if (newState.posture === 'walking') {
+        breathingRate *= 1.4; // Walking: 20-25 BrPM
+      } else if (newState.posture === 'lying_down' || newState.isSleeping) {
+        breathingRate *= 0.8; // Resting/sleeping: 12-16 BrPM
+      }
+      
+      // Natural variation (±5% for realism)
+      const brVariation = (Math.sin(newState.simTime * 0.15) * 0.05 + 1);
+      breathingRate *= brVariation;
+      
+      // Clamp to realistic range (8-45 BrPM)
+      newState.breathingRate = Math.max(8, Math.min(45, breathingRate));
+
+      // Full bladder preference trait effects on vitals
+      if (newState.fullBladderPreference) {
+        const fillRatio = newState.bladderVolume / newState.maxCapacity;
+        if (fillRatio > 0.7) {
+          // Calm when full
+          newState.heartRate = Math.max(40, newState.heartRate - 10);
+          newState.breathingRate = Math.max(8, newState.breathingRate - 3);
+        } else if (fillRatio < 0.2) {
+          // Anxious when empty
+          newState.heartRate = Math.min(220, newState.heartRate + 20);
+          newState.breathingRate = Math.min(45, newState.breathingRate + 5);
+        }
       }
 
       // Blood pressure calculation (heavily influenced by heart rate and beat strength)
