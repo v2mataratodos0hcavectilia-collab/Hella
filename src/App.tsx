@@ -16,6 +16,27 @@ import RelationshipsPanel from './components/RelationshipsPanel';
 import TrainingPanel from './components/TrainingPanel';
 import { Scenario } from './types';
 
+function CollapsibleBottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="px-1 pb-1">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-gray-800/80 border border-gray-700 rounded-lg px-3 py-2 mb-1 flex items-center justify-between hover:bg-gray-700/80 transition-colors"
+      >
+        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{title}</span>
+        <span className="text-gray-500">{isOpen ? '▼' : '▶'}</span>
+      </button>
+      {isOpen && (
+        <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const {
     state,
@@ -190,16 +211,18 @@ function App() {
             <AILog state={state} />
           </div>
 
-          {/* New Feature Panels */}
-          <div className="px-1 pb-1 grid grid-cols-3 gap-1">
-            <WeatherPanel state={state} />
-            <RelationshipsPanel state={state} />
-            <TrainingPanel 
-              state={state} 
-              setTrainingMethod={setTrainingMethod}
-              toggleBladderControlMode={toggleBladderControlMode}
-            />
-          </div>
+          {/* New Feature Panels - Collapsible */}
+          <CollapsibleBottomPanel title="🌍 Environment & Relationships & Training">
+            <div className="grid grid-cols-3 gap-1">
+              <WeatherPanel state={state} />
+              <RelationshipsPanel state={state} />
+              <TrainingPanel 
+                state={state} 
+                setTrainingMethod={setTrainingMethod}
+                toggleBladderControlMode={toggleBladderControlMode}
+              />
+            </div>
+          </CollapsibleBottomPanel>
 
           {/* Stats Bar */}
           <StatsPanel state={state} />
