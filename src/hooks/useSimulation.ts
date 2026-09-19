@@ -120,6 +120,8 @@ const INITIAL_STATE: SimulationState = {
   nanobotsActive: false,
   playerHeartRateControl: null,
   playerBreathingControl: null,
+  heartBeatStrength: 50,
+  breathDeepness: 50,
   
   // Weather & Time System
   weather: 'clear',
@@ -129,7 +131,32 @@ const INITIAL_STATE: SimulationState = {
   
   // Relationships
   friends: [],
-  family: [],
+  family: [
+    {
+      id: 'mom',
+      name: 'Mom',
+      type: 'family',
+      closeness: 85,
+      lastInteraction: 0,
+      messages: [],
+    },
+    {
+      id: 'dad',
+      name: 'Dad',
+      type: 'family',
+      closeness: 80,
+      lastInteraction: 0,
+      messages: [],
+    },
+    {
+      id: 'sister',
+      name: 'Emma',
+      type: 'family',
+      closeness: 75,
+      lastInteraction: 0,
+      messages: [],
+    },
+  ],
   romanticInterest: null,
   rival: null,
   
@@ -1399,6 +1426,14 @@ export function useSimulation() {
     setState(prev => ({ ...prev, cameraViewMode: mode }));
   }, []);
 
+  const setHeartBeatStrength = useCallback((strength: number) => {
+    setState(prev => ({ ...prev, heartBeatStrength: Math.max(0, Math.min(100, strength)) }));
+  }, []);
+
+  const setBreathDeepness = useCallback((deepness: number) => {
+    setState(prev => ({ ...prev, breathDeepness: Math.max(0, Math.min(100, deepness)) }));
+  }, []);
+
   return {
     state,
     overrides,
@@ -1427,6 +1462,8 @@ export function useSimulation() {
     playerComment,
     setHeartRateControl,
     setBreathingControl,
+    setHeartBeatStrength,
+    setBreathDeepness,
     toggleNanobots,
     setViewedProfile,
     setTrainingMethod,

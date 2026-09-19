@@ -66,6 +66,8 @@ function App() {
     playerComment,
     setHeartRateControl,
     setBreathingControl,
+    setHeartBeatStrength,
+    setBreathDeepness,
     toggleNanobots,
     setViewedProfile,
     setTrainingMethod,
@@ -264,6 +266,8 @@ function App() {
             toggleFullBladderPreference={toggleFullBladderPreference}
             setHeartRateControl={setHeartRateControl}
             setBreathingControl={setBreathingControl}
+            setHeartBeatStrength={setHeartBeatStrength}
+            setBreathDeepness={setBreathDeepness}
             toggleNanobots={toggleNanobots}
           />
         </div>

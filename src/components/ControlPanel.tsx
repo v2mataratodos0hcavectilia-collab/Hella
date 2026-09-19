@@ -34,6 +34,8 @@ interface ControlPanelProps {
   toggleFullBladderPreference: () => void;
   setHeartRateControl: (bpm: number | null) => void;
   setBreathingControl: (brpm: number | null) => void;
+  setHeartBeatStrength: (v: number) => void;
+  setBreathDeepness: (v: number) => void;
   toggleNanobots: () => void;
 }
 
@@ -61,6 +63,8 @@ export default function ControlPanel({
   toggleFullBladderPreference,
   setHeartRateControl,
   setBreathingControl,
+  setHeartBeatStrength,
+  setBreathDeepness,
   toggleNanobots,
 }: ControlPanelProps) {
   return (
@@ -184,13 +188,13 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Water & Basics</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['water', 'milk', 'sports_drink', 'coconut_water'] as const).map(type => (
+              {(['water', 'milk', 'sports_drink', 'coconut_water', 'bone_broth', 'protein_shake'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'water' ? '💧' : type === 'milk' ? '🥛' : type === 'sports_drink' ? '🏃' : '🥥'}
+                  {type === 'water' ? '💧' : type === 'milk' ? '🥛' : type === 'sports_drink' ? '🏃' : type === 'coconut_water' ? '🥥' : type === 'bone_broth' ? '🍖' : '💪'}
                   <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
@@ -214,13 +218,13 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Hot Drinks</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['coffee', 'tea', 'hot_chocolate', 'green_tea', 'black_tea', 'chai_tea', 'espresso', 'cappuccino', 'mocha', 'herbal_tea', 'iced_coffee'] as const).map(type => (
+              {(['coffee', 'tea', 'hot_chocolate', 'green_tea', 'black_tea', 'chai_tea', 'espresso', 'cappuccino', 'mocha', 'herbal_tea', 'iced_coffee', 'matcha_latte', 'cold_brew', 'affogato', 'irish_coffee'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'hot_chocolate' ? '🍫' : type === 'green_tea' ? '🍵' : type === 'black_tea' ? '🍵' : type === 'chai_tea' ? '🍵' : type === 'espresso' ? '☕' : type === 'cappuccino' ? '☕' : type === 'mocha' ? '☕' : type === 'herbal_tea' ? '🌿' : '🧊'}
+                  {type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'hot_chocolate' ? '🍫' : type === 'green_tea' ? '🍵' : type === 'black_tea' ? '🍵' : type === 'chai_tea' ? '🍵' : type === 'espresso' ? '☕' : type === 'cappuccino' ? '☕' : type === 'mocha' ? '☕' : type === 'herbal_tea' ? '🌿' : type === 'iced_coffee' ? '🧊' : type === 'matcha_latte' ? '🍵' : type === 'cold_brew' ? '🧊' : type === 'affogato' ? '🍨' : '☕'}
                   <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
@@ -229,13 +233,13 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Cold & Carbonated</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['soda', 'energy_drink', 'smoothie'] as const).map(type => (
+              {(['soda', 'energy_drink', 'smoothie', 'kombucha'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : '🥤'}
+                  {type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : type === 'smoothie' ? '🥤' : '🍶'}
                   <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
@@ -244,13 +248,13 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Alcohol</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'champagne', 'margarita', 'bloody_mary'] as const).map(type => (
+              {(['alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'champagne', 'margarita', 'bloody_mary', 'pina_colada', 'moscow_mule', 'gin_tonic', 'rum_coke', 'tequila_sunrise'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'alcohol' ? '🍺' : type === 'beer' ? '🍺' : type === 'wine' ? '🍷' : type === 'vodka' ? '🥃' : type === 'whiskey' ? '🥃' : type === 'champagne' ? '🍾' : type === 'margarita' ? '🍹' : '🍹'}
+                  {type === 'alcohol' ? '🍺' : type === 'beer' ? '🍺' : type === 'wine' ? '🍷' : type === 'vodka' ? '🥃' : type === 'whiskey' ? '🥃' : type === 'champagne' ? '🍾' : type === 'margarita' ? '🍹' : type === 'bloody_mary' ? '🍹' : type === 'pina_colada' ? '🍹' : type === 'moscow_mule' ? '🍺' : type === 'gin_tonic' ? '🍸' : type === 'rum_coke' ? '🥃' : '🍹'}
                   <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
@@ -704,6 +708,44 @@ export default function ControlPanel({
                 >
                   Auto
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">
+                Heart Beat Strength: {state.heartBeatStrength}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={state.heartBeatStrength}
+                onChange={(e) => setHeartBeatStrength(Number(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+              <div className="text-[10px] text-gray-500 mt-1">
+                {state.heartBeatStrength < 30 ? '💔 Weak beats' :
+                 state.heartBeatStrength < 70 ? '💓 Normal beats' :
+                 '💪 Strong beats'}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">
+                Breath Deepness: {state.breathDeepness}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={state.breathDeepness}
+                onChange={(e) => setBreathDeepness(Number(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+              <div className="text-[10px] text-gray-500 mt-1">
+                {state.breathDeepness < 30 ? '😮️ Shallow breaths' :
+                 state.breathDeepness < 70 ? '😌 Normal breaths' :
+                 '🌬️ Deep breaths'}
               </div>
             </div>
 

@@ -113,6 +113,8 @@ export interface SimulationState {
   nanobotsActive: boolean;
   playerHeartRateControl: number | null; // null = auto, number = manual BPM
   playerBreathingControl: number | null; // null = auto, number = manual BrPM
+  heartBeatStrength: number; // 0-100% (how strong each heartbeat is)
+  breathDeepness: number; // 0-100% (how deep each breath is)
   
   // Weather & Time System
   weather: WeatherType;
@@ -319,7 +321,7 @@ export type AIState =
   | 'gaming'
   | 'commuting';
 
-export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea' | 'lemonade' | 'apple_juice' | 'orange_juice' | 'cranberry_juice' | 'green_tea' | 'black_tea' | 'chai_tea' | 'espresso' | 'cappuccino' | 'mocha' | 'beer' | 'wine' | 'vodka' | 'whiskey' | 'champagne' | 'margarita' | 'bloody_mary';
+export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea' | 'lemonade' | 'apple_juice' | 'orange_juice' | 'cranberry_juice' | 'green_tea' | 'black_tea' | 'chai_tea' | 'espresso' | 'cappuccino' | 'mocha' | 'beer' | 'wine' | 'vodka' | 'whiskey' | 'champagne' | 'margarita' | 'bloody_mary' | 'matcha_latte' | 'kombucha' | 'bone_broth' | 'protein_shake' | 'cold_brew' | 'affogato' | 'irish_coffee' | 'pina_colada' | 'moscow_mule' | 'gin_tonic' | 'rum_coke' | 'tequila_sunrise' | 'bloody_mary';
 
 export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin' | 'meth' | 'cocaine' | 'heroin' | 'fentanyl' | 'ecstasy' | 'mushrooms' | 'dmt' | 'pcp' | 'roxie' | 'percocet' | 'ambien' | 'nanobots';
 
@@ -394,6 +396,18 @@ export const FLUID_PROPERTIES: Record<FluidType, { fillMultiplier: number; urgeM
   champagne: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: true },
   margarita: { fillMultiplier: 1.7, urgeMultiplier: 0.4, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: false },
   bloody_mary: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.4, suppressesUrge: true, carbonationPressure: false },
+  matcha_latte: { fillMultiplier: 1.4, urgeMultiplier: 1.2, volumeMultiplier: 1.2, suppressesUrge: false, carbonationPressure: false },
+  kombucha: { fillMultiplier: 1.1, urgeMultiplier: 1.0, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: true },
+  bone_broth: { fillMultiplier: 0.8, urgeMultiplier: 0.7, volumeMultiplier: 1.0, suppressesUrge: false, carbonationPressure: false },
+  protein_shake: { fillMultiplier: 0.9, urgeMultiplier: 0.8, volumeMultiplier: 1.3, suppressesUrge: false, carbonationPressure: false },
+  cold_brew: { fillMultiplier: 1.9, urgeMultiplier: 1.6, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  affogato: { fillMultiplier: 1.3, urgeMultiplier: 1.1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  irish_coffee: { fillMultiplier: 1.5, urgeMultiplier: 0.8, volumeMultiplier: 1.2, suppressesUrge: true, carbonationPressure: false },
+  pina_colada: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.4, suppressesUrge: true, carbonationPressure: false },
+  moscow_mule: { fillMultiplier: 1.7, urgeMultiplier: 0.4, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: true },
+  gin_tonic: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.2, suppressesUrge: true, carbonationPressure: true },
+  rum_coke: { fillMultiplier: 1.7, urgeMultiplier: 0.4, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: true },
+  tequila_sunrise: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: false },
 };
 
 export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
