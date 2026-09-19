@@ -178,14 +178,29 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Water & Basics</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['water', 'juice', 'milk'] as const).map(type => (
+              {(['water', 'milk', 'sports_drink', 'coconut_water'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'water' ? '💧' : type === 'juice' ? '🧃' : '🥛'}
-                  <br />{type}
+                  {type === 'water' ? '💧' : type === 'milk' ? '🥛' : type === 'sports_drink' ? '🏃' : '🥥'}
+                  <br />{type.replace('_', ' ').substring(0, 8)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Juices</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['juice', 'lemonade', 'apple_juice', 'orange_juice', 'cranberry_juice'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => giveDrink(type)}
+                  className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
+                >
+                  {type === 'juice' ? '🧃' : type === 'lemonade' ? '🍋' : type === 'apple_juice' ? '🍎' : type === 'orange_juice' ? '🍊' : '🫐'}
+                  <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
             </div>
@@ -193,14 +208,14 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Hot Drinks</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['coffee', 'tea', 'hot_chocolate'] as const).map(type => (
+              {(['coffee', 'tea', 'hot_chocolate', 'green_tea', 'black_tea', 'chai_tea', 'espresso', 'cappuccino', 'mocha', 'herbal_tea', 'iced_coffee'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : '🍫'}
-                  <br />{type.replace('_', ' ')}
+                  {type === 'coffee' ? '☕' : type === 'tea' ? '🍵' : type === 'hot_chocolate' ? '🍫' : type === 'green_tea' ? '🍵' : type === 'black_tea' ? '🍵' : type === 'chai_tea' ? '🍵' : type === 'espresso' ? '☕' : type === 'cappuccino' ? '☕' : type === 'mocha' ? '☕' : type === 'herbal_tea' ? '🌿' : '🧊'}
+                  <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
             </div>
@@ -208,29 +223,29 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Cold & Carbonated</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['soda', 'energy_drink', 'iced_coffee'] as const).map(type => (
+              {(['soda', 'energy_drink', 'smoothie'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : '🧊'}
-                  <br />{type.replace('_', ' ')}
+                  {type === 'soda' ? '🥤' : type === 'energy_drink' ? '⚡' : '🥤'}
+                  <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-500 mb-1">Specialty</div>
+            <div className="text-[10px] text-gray-500 mb-1">Alcohol</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['alcohol', 'smoothie', 'sports_drink'] as const).map(type => (
+              {(['alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'champagne', 'margarita', 'bloody_mary'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => giveDrink(type)}
                   className="px-1 py-1.5 rounded text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 capitalize"
                 >
-                  {type === 'alcohol' ? '🍺' : type === 'smoothie' ? '🥤' : '🏃'}
-                  <br />{type.replace('_', ' ')}
+                  {type === 'alcohol' ? '🍺' : type === 'beer' ? '🍺' : type === 'wine' ? '🍷' : type === 'vodka' ? '🥃' : type === 'whiskey' ? '🥃' : type === 'champagne' ? '🍾' : type === 'margarita' ? '🍹' : '🍹'}
+                  <br />{type.replace('_', ' ').substring(0, 8)}
                 </button>
               ))}
             </div>
@@ -249,7 +264,7 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Stimulants</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['caffeine', 'adderall', 'ritalin'] as const).map(type => {
+              {(['caffeine', 'adderall', 'ritalin', 'meth', 'cocaine'] as const).map(type => {
                 const props = DRUG_PROPERTIES[type];
                 const doses = state.drugDoses[type] || 0;
                 const isActive = state.activeDrugs.some(d => d.type === type);
@@ -264,7 +279,7 @@ export default function ControlPanel({
                     }`}
                     title={`${props.name}\n${props.category}\n${props.description}`}
                   >
-                    {type === 'caffeine' ? '☕' : type === 'adderall' ? '💊' : '💊'}
+                    {type === 'caffeine' ? '☕' : type === 'meth' ? '💎' : type === 'cocaine' ? '❄️' : '💊'}
                     <br />{props.name.substring(0, 7)}
                     {doses > 0 && <div className="text-[9px]">×{doses}</div>}
                   </button>
@@ -275,7 +290,7 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Depressants</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['xanax', 'valium', 'serenol'] as const).map(type => {
+              {(['xanax', 'valium', 'serenol', 'ambien'] as const).map(type => {
                 const props = DRUG_PROPERTIES[type];
                 const doses = state.drugDoses[type] || 0;
                 const isActive = state.activeDrugs.some(d => d.type === type);
@@ -300,7 +315,83 @@ export default function ControlPanel({
           <div>
             <div className="text-[10px] text-gray-500 mb-1">Opioids</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['oxycontin', 'morphine'] as const).map(type => {
+              {(['oxycontin', 'morphine', 'roxie', 'percocet', 'heroin', 'fentanyl'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    {type === 'heroin' ? '💉' : type === 'fentanyl' ? '⚡' : '💊'}
+                    <br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Hallucinogens</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['lsd', 'mushrooms', 'dmt'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    🍄<br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Empathogens</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['mdma', 'ecstasy'] as const).map(type => {
+                const props = DRUG_PROPERTIES[type];
+                const doses = state.drugDoses[type] || 0;
+                const isActive = state.activeDrugs.some(d => d.type === type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => giveDrug(type)}
+                    className={`px-1 py-1.5 rounded text-xs ${
+                      isActive ? 'bg-green-700 text-white' : 
+                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
+                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                    title={`${props.name}\n${props.category}\n${props.description}`}
+                  >
+                    🎭<br />{props.name.substring(0, 7)}
+                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] text-gray-500 mb-1">Dissociatives</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['ketamine', 'pcp'] as const).map(type => {
                 const props = DRUG_PROPERTIES[type];
                 const doses = state.drugDoses[type] || 0;
                 const isActive = state.activeDrugs.some(d => d.type === type);
@@ -323,35 +414,9 @@ export default function ControlPanel({
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-500 mb-1">Other</div>
-            <div className="grid grid-cols-3 gap-1">
-              {(['mdma', 'lsd', 'ketamine'] as const).map(type => {
-                const props = DRUG_PROPERTIES[type];
-                const doses = state.drugDoses[type] || 0;
-                const isActive = state.activeDrugs.some(d => d.type === type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => giveDrug(type)}
-                    className={`px-1 py-1.5 rounded text-xs ${
-                      isActive ? 'bg-green-700 text-white' : 
-                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
-                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                    title={`${props.name}\n${props.category}\n${props.description}`}
-                  >
-                    {type === 'mdma' ? '🎭' : type === 'lsd' ? '🍄' : '💊'}
-                    <br />{props.name.substring(0, 7)}
-                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div>
             <div className="text-[10px] text-gray-500 mb-1">Specialty</div>
             <div className="grid grid-cols-3 gap-1">
-              {(['nicotine', 'blazex'] as const).map(type => {
+              {(['nicotine', 'blazex', 'nanobots'] as const).map(type => {
                 const props = DRUG_PROPERTIES[type];
                 const doses = state.drugDoses[type] || 0;
                 const isActive = state.activeDrugs.some(d => d.type === type);
@@ -366,33 +431,7 @@ export default function ControlPanel({
                     }`}
                     title={`${props.name}\n${props.category}\n${props.description}`}
                   >
-                    {type === 'nicotine' ? '🚬' : '💧'}
-                    <br />{props.name.substring(0, 7)}
-                    {doses > 0 && <div className="text-[9px]">×{doses}</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] text-red-400 mb-1">⚠️ Addictive (High Risk)</div>
-            <div className="grid grid-cols-3 gap-1">
-              {(['meth', 'cocaine', 'heroin', 'fentanyl'] as const).map(type => {
-                const props = DRUG_PROPERTIES[type];
-                const doses = state.drugDoses[type] || 0;
-                const isActive = state.activeDrugs.some(d => d.type === type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => giveDrug(type)}
-                    className={`px-1 py-1.5 rounded text-xs ${
-                      isActive ? 'bg-green-700 text-white' : 
-                      doses >= props.overdoseThreshold ? 'bg-red-900 text-red-300' :
-                      'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                    title={`${props.name}\n${props.category}\n${props.description}\n⚠️ HIGHLY ADDICTIVE`}
-                  >
-                    {type === 'meth' ? '💎' : type === 'cocaine' ? '❄️' : type === 'heroin' ? '💉' : '⚡'}
+                    {type === 'nicotine' ? '🚬' : type === 'blazex' ? '💧' : '🤖'}
                     <br />{props.name.substring(0, 7)}
                     {doses > 0 && <div className="text-[9px]">×{doses}</div>}
                   </button>
