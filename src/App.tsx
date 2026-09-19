@@ -186,6 +186,7 @@ function App() {
               state={state}
               onPost={handlePlayerPost}
               onComment={handlePlayerComment}
+              onExit={() => setActiveSocialTab('posts')}
             />
           )}
         </div>

@@ -71,6 +71,14 @@ const INITIAL_STATE: SimulationState = {
     cocaine: 0,
     heroin: 0,
     fentanyl: 0,
+    ecstasy: 0,
+    mushrooms: 0,
+    dmt: 0,
+    pcp: 0,
+    roxie: 0,
+    percocet: 0,
+    ambien: 0,
+    nanobots: 0,
   },
   isOverdosing: false,
   overdoseDrug: null,
@@ -96,6 +104,18 @@ const INITIAL_STATE: SimulationState = {
   totalDrugsTaken: 0,
   drugsTried: [],
   overdosesSurvived: 0,
+  
+  // Death/pass out mechanics
+  isPassedOut: false,
+  passOutTime: 0,
+  isDead: false,
+  deathCause: '',
+  consciousnessLevel: 100,
+  
+  // Nanobot control
+  nanobotsActive: false,
+  playerHeartRateControl: null,
+  playerBreathingControl: null,
 };
 
 interface PlayerOverrides {
@@ -105,6 +125,22 @@ interface PlayerOverrides {
   posture: boolean;
   temperature: boolean;
   fillRate: boolean;
+}
+
+function getSuggestionResponse(suggestion: string): string {
+  const responses = [
+    "Haha good idea! Maybe I'll try that 😄",
+    "Omg that's actually genius! 🤯",
+    "Lol you're right, I should do that!",
+    "Thanks for the suggestion! 💕",
+    "You always have the best ideas!",
+    "Okay okay, I'll think about it 😅",
+    "That's hilarious but maybe not... 😂",
+    "You know me too well! 🙈",
+    "Challenge accepted! 🏆",
+    "Why not? Let's do it! 🎉",
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
 }
 
 function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
@@ -542,6 +578,59 @@ export function useSimulation() {
         }
       }
 
+      // Nanobot control - override vitals if player has control
+      if (newState.nanobotsActive) {
+        if (newState.playerHeartRateControl !== null) {
+          newState.heartRate = newState.playerHeartRateControl;
+        }
+        if (newState.playerBreathingControl !== null) {
+          newState.breathingRate = newState.playerBreathingControl;
+        }
+      }
+
+      // Death/pass out mechanics
+      // Pass out if heart rate too high or too low, or breathing too low
+      if (!newState.isPassedOut && !newState.isDead) {
+        if (newState.heartRate > 200 || newState.heartRate < 30) {
+          newState.isPassedOut = true;
+          newState.passOutTime = newState.simTime;
+          newState.consciousnessLevel = 0;
+        } else if (newState.breathingRate < 5) {
+          newState.isPassedOut = true;
+          newState.passOutTime = newState.simTime;
+          newState.consciousnessLevel = 0;
+        }
+      }
+
+      // Die if conditions are extreme
+      if (!newState.isDead) {
+        if (newState.heartRate > 250 || newState.heartRate < 20) {
+          newState.isDead = true;
+          newState.deathCause = 'Cardiac arrest';
+        } else if (newState.breathingRate < 3) {
+          newState.isDead = true;
+          newState.deathCause = 'Respiratory failure';
+        } else if (newState.isOverdosing && newState.overdoseDrug) {
+          const drugType = newState.overdoseDrug as DrugType;
+          const drugProps = DRUG_PROPERTIES[drugType];
+          if (drugProps.overdoseSymptoms?.includes('death')) {
+            newState.isDead = true;
+            newState.deathCause = `Overdose: ${drugProps.name}`;
+          }
+        }
+      }
+
+      // Recovery from pass out
+      if (newState.isPassedOut && !newState.isDead) {
+        // Wake up after 5 minutes if vitals normalize
+        if (newState.simTime - newState.passOutTime > 300) {
+          if (newState.heartRate >= 40 && newState.heartRate <= 180 && newState.breathingRate >= 8) {
+            newState.isPassedOut = false;
+            newState.consciousnessLevel = 100;
+          }
+        }
+      }
+
       // Bladder training - dependent on bladder fullness, NOT urge signal
       // Training starts at 100% capacity, faster when bulging (>100%)
       const fillRatio = newState.bladderVolume / newState.maxCapacity;
@@ -641,6 +730,26 @@ export function useSimulation() {
           };
           newState.followerSuggestions = [suggestion, ...newState.followerSuggestions].slice(0, 10);
         }
+
+        // AI responds to recommendations (30% chance per suggestion per minute)
+        newState.followerSuggestions = newState.followerSuggestions.map(suggestion => {
+          if (!suggestion.responded && Math.random() < 0.005 * simDt * newState.timeSpeed) {
+            // Create a response post
+            const responsePost: SocialMediaPost = {
+              id: `response_${Date.now()}_${Math.random()}`,
+              author: 'Sarah_J',
+              content: `@${suggestion.follower} ${getSuggestionResponse(suggestion.suggestion)}`,
+              timestamp: newState.simTime,
+              likes: Math.floor(Math.random() * 20),
+              comments: Math.floor(Math.random() * 5),
+              isFromUser: true,
+              commentList: [],
+            };
+            newState.socialMediaPosts = [responsePost, ...newState.socialMediaPosts].slice(0, 50);
+            return { ...suggestion, responded: true };
+          }
+          return suggestion;
+        });
         
         // Follower income (capped at 30× simulation minutes)
         const incomeInterval = Math.min(30 * 60, 60); // Max 30 minutes, check every minute
@@ -835,6 +944,19 @@ export function useSimulation() {
         dose: newDose,
       };
 
+      // Special handling for nanobots
+      if (type === 'nanobots') {
+        return {
+          ...prev,
+          nanobotsActive: true,
+          activeDrugs: [...prev.activeDrugs, newDrug],
+          drugDoses: {
+            ...prev.drugDoses,
+            [type]: newDose,
+          },
+        };
+      }
+
       return {
         ...prev,
         activeDrugs: [...prev.activeDrugs, newDrug],
@@ -844,6 +966,14 @@ export function useSimulation() {
         },
       };
     });
+  }, []);
+
+  const setHeartRateControl = useCallback((bpm: number | null) => {
+    setState(prev => ({ ...prev, playerHeartRateControl: bpm }));
+  }, []);
+
+  const setBreathingControl = useCallback((brpm: number | null) => {
+    setState(prev => ({ ...prev, playerBreathingControl: brpm }));
   }, []);
 
   const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal') => {
@@ -932,5 +1062,7 @@ export function useSimulation() {
     setActiveSocialTab,
     playerPost,
     playerComment,
+    setHeartRateControl,
+    setBreathingControl,
   };
 }

@@ -97,6 +97,18 @@ export interface SimulationState {
   totalDrugsTaken: number;
   drugsTried: DrugType[];
   overdosesSurvived: number;
+  
+  // Death/pass out mechanics
+  isPassedOut: boolean;
+  passOutTime: number;
+  isDead: boolean;
+  deathCause: string;
+  consciousnessLevel: number; // 0-100%
+  
+  // Nanobot control
+  nanobotsActive: boolean;
+  playerHeartRateControl: number | null; // null = auto, number = manual BPM
+  playerBreathingControl: number | null; // null = auto, number = manual BrPM
 }
 
 export interface ActiveDrug {
@@ -170,9 +182,9 @@ export type AIState =
   | 'gaming'
   | 'commuting';
 
-export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea';
+export type FluidType = 'water' | 'coffee' | 'tea' | 'alcohol' | 'soda' | 'energy_drink' | 'juice' | 'milk' | 'smoothie' | 'hot_chocolate' | 'iced_coffee' | 'sports_drink' | 'coconut_water' | 'herbal_tea' | 'lemonade' | 'apple_juice' | 'orange_juice' | 'cranberry_juice' | 'green_tea' | 'black_tea' | 'chai_tea' | 'espresso' | 'cappuccino' | 'mocha' | 'beer' | 'wine' | 'vodka' | 'whiskey' | 'champagne' | 'margarita' | 'bloody_mary';
 
-export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin' | 'meth' | 'cocaine' | 'heroin' | 'fentanyl';
+export type DrugType = 'caffeine' | 'adderall' | 'xanax' | 'oxycontin' | 'mdma' | 'lsd' | 'nicotine' | 'blazex' | 'serenol' | 'valium' | 'morphine' | 'ketamine' | 'ritalin' | 'meth' | 'cocaine' | 'heroin' | 'fentanyl' | 'ecstasy' | 'mushrooms' | 'dmt' | 'pcp' | 'roxie' | 'percocet' | 'ambien' | 'nanobots';
 
 export interface DrugEffect {
   name: string;
@@ -228,6 +240,23 @@ export const FLUID_PROPERTIES: Record<FluidType, { fillMultiplier: number; urgeM
   sports_drink: { fillMultiplier: 0.8, urgeMultiplier: 0.9, volumeMultiplier: 1, suppressesUrge: false, carbonationPressure: false },
   coconut_water: { fillMultiplier: 1.3, urgeMultiplier: 1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
   herbal_tea: { fillMultiplier: 0.7, urgeMultiplier: 0.6, volumeMultiplier: 1, suppressesUrge: false, carbonationPressure: false },
+  lemonade: { fillMultiplier: 1.0, urgeMultiplier: 1.0, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  apple_juice: { fillMultiplier: 1.1, urgeMultiplier: 1.0, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  orange_juice: { fillMultiplier: 1.1, urgeMultiplier: 1.0, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  cranberry_juice: { fillMultiplier: 1.2, urgeMultiplier: 1.1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  green_tea: { fillMultiplier: 1.3, urgeMultiplier: 1.1, volumeMultiplier: 1.0, suppressesUrge: false, carbonationPressure: false },
+  black_tea: { fillMultiplier: 1.4, urgeMultiplier: 1.2, volumeMultiplier: 1.0, suppressesUrge: false, carbonationPressure: false },
+  chai_tea: { fillMultiplier: 1.3, urgeMultiplier: 1.1, volumeMultiplier: 1.1, suppressesUrge: false, carbonationPressure: false },
+  espresso: { fillMultiplier: 1.8, urgeMultiplier: 1.5, volumeMultiplier: 0.5, suppressesUrge: false, carbonationPressure: false },
+  cappuccino: { fillMultiplier: 1.5, urgeMultiplier: 1.3, volumeMultiplier: 1.2, suppressesUrge: false, carbonationPressure: false },
+  mocha: { fillMultiplier: 1.4, urgeMultiplier: 1.2, volumeMultiplier: 1.3, suppressesUrge: false, carbonationPressure: false },
+  beer: { fillMultiplier: 1.6, urgeMultiplier: 0.6, volumeMultiplier: 1.4, suppressesUrge: true, carbonationPressure: true },
+  wine: { fillMultiplier: 1.5, urgeMultiplier: 0.5, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: false },
+  vodka: { fillMultiplier: 1.7, urgeMultiplier: 0.4, volumeMultiplier: 1.2, suppressesUrge: true, carbonationPressure: false },
+  whiskey: { fillMultiplier: 1.8, urgeMultiplier: 0.4, volumeMultiplier: 1.2, suppressesUrge: true, carbonationPressure: false },
+  champagne: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: true },
+  margarita: { fillMultiplier: 1.7, urgeMultiplier: 0.4, volumeMultiplier: 1.3, suppressesUrge: true, carbonationPressure: false },
+  bloody_mary: { fillMultiplier: 1.6, urgeMultiplier: 0.5, volumeMultiplier: 1.4, suppressesUrge: true, carbonationPressure: false },
 };
 
 export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
@@ -500,6 +529,131 @@ export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
     duration: 2400,
     description: 'Synthetic opioid. Extremely dangerous even in small doses.',
     overdoseSymptoms: 'Immediate respiratory failure, death',
+  },
+  ecstasy: {
+    name: 'Ecstasy',
+    category: 'Empathogen',
+    fillMultiplier: 0.9,
+    urgeMultiplier: 0.3,
+    heartRateBonus: 25,
+    breathingBonus: 5,
+    sphincterRelaxation: 0.25,
+    suppressesUrge: true,
+    addictive: false,
+    overdoseRisk: true,
+    overdoseThreshold: 3,
+    duration: 3600,
+    description: 'Party drug. Causes dehydration and overheating.',
+    overdoseSymptoms: 'Hyperthermia, seizures, organ failure',
+  },
+  mushrooms: {
+    name: 'Mushrooms',
+    category: 'Hallucinogen',
+    fillMultiplier: 0.8,
+    urgeMultiplier: 0.2,
+    heartRateBonus: 10,
+    breathingBonus: 2,
+    sphincterRelaxation: 0.15,
+    suppressesUrge: true,
+    addictive: false,
+    overdoseRisk: false,
+    overdoseThreshold: 999,
+    duration: 4800,
+    description: 'Psilocybin mushrooms. Alters perception of time and bodily sensations.',
+  },
+  dmt: {
+    name: 'DMT',
+    category: 'Hallucinogen',
+    fillMultiplier: 0.7,
+    urgeMultiplier: 0.1,
+    heartRateBonus: 20,
+    breathingBonus: 4,
+    sphincterRelaxation: 0.3,
+    suppressesUrge: true,
+    addictive: false,
+    overdoseRisk: false,
+    overdoseThreshold: 999,
+    duration: 1800,
+    description: 'Powerful hallucinogen. Intense but short-lived trip.',
+  },
+  pcp: {
+    name: 'PCP',
+    category: 'Dissociative',
+    fillMultiplier: 0.6,
+    urgeMultiplier: 0.05,
+    heartRateBonus: 30,
+    breathingBonus: 6,
+    sphincterRelaxation: 0.5,
+    suppressesUrge: true,
+    addictive: false,
+    overdoseRisk: true,
+    overdoseThreshold: 2,
+    duration: 5400,
+    description: 'Dissociative anesthetic. Causes complete detachment from reality.',
+    overdoseSymptoms: 'Seizures, coma, death',
+  },
+  roxie: {
+    name: 'Roxicodone',
+    category: 'Opioid',
+    fillMultiplier: 0.5,
+    urgeMultiplier: 0.08,
+    heartRateBonus: -18,
+    breathingBonus: -5,
+    sphincterRelaxation: 0.55,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 3,
+    duration: 4200,
+    description: 'Fast-acting opioid painkiller. Strong bladder suppression.',
+    overdoseSymptoms: 'Respiratory depression, unconsciousness',
+  },
+  percocet: {
+    name: 'Percocet',
+    category: 'Opioid',
+    fillMultiplier: 0.55,
+    urgeMultiplier: 0.1,
+    heartRateBonus: -15,
+    breathingBonus: -4,
+    sphincterRelaxation: 0.5,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 4,
+    duration: 3600,
+    description: 'Oxycodone + acetaminophen. Moderate bladder suppression.',
+    overdoseSymptoms: 'Liver damage, respiratory failure',
+  },
+  ambien: {
+    name: 'Ambien',
+    category: 'Sedative',
+    fillMultiplier: 0.7,
+    urgeMultiplier: 0.15,
+    heartRateBonus: -12,
+    breathingBonus: -3,
+    sphincterRelaxation: 0.4,
+    suppressesUrge: true,
+    addictive: true,
+    overdoseRisk: true,
+    overdoseThreshold: 5,
+    duration: 4800,
+    description: 'Sleep medication. Causes drowsiness and bladder relaxation.',
+    overdoseSymptoms: 'Extreme drowsiness, respiratory depression',
+  },
+  nanobots: {
+    name: 'Nanobots',
+    category: 'Experimental',
+    fillMultiplier: 1.0,
+    urgeMultiplier: 1.0,
+    heartRateBonus: 0,
+    breathingBonus: 0,
+    sphincterRelaxation: 0,
+    suppressesUrge: false,
+    addictive: false,
+    overdoseRisk: false,
+    overdoseThreshold: 999,
+    duration: 7200,
+    description: 'Experimental nanotechnology. Grants player full control over heart rate and breathing.',
   },
 };
 

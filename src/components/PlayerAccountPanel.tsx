@@ -5,9 +5,10 @@ interface PlayerAccountPanelProps {
   state: SimulationState;
   onPost: (content: string) => void;
   onComment: (postId: string, content: string) => void;
+  onExit: () => void;
 }
 
-export default function PlayerAccountPanel({ state, onPost, onComment }: PlayerAccountPanelProps) {
+export default function PlayerAccountPanel({ state, onPost, onComment, onExit }: PlayerAccountPanelProps) {
   const [newPostContent, setNewPostContent] = useState('');
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
@@ -35,7 +36,15 @@ export default function PlayerAccountPanel({ state, onPost, onComment }: PlayerA
   return (
     <div className="bg-gray-900 border-t border-gray-700 p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">👤 My Account</h3>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors"
+          >
+            ← Back
+          </button>
+          <h3 className="text-lg font-bold text-white">👤 My Account</h3>
+        </div>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-gray-400">
             💰 <span className="text-green-400">${state.money.toFixed(2)}</span>
