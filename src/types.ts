@@ -160,6 +160,49 @@ export interface SimulationState {
   
   // Custom Scenarios
   customScenarios: CustomScenario[];
+  
+  // Consequence System
+  healthEffects: HealthEffects;
+  reputation: number; // 0-100
+  careerProgress: number; // 0-100
+  relationshipStatus: Record<string, number>; // relationship name -> closeness 0-100
+  
+  // Skill Trees
+  skills: SkillTree;
+}
+
+export interface HealthEffects {
+  bladderDamage: number; // 0-100 (from repeated extreme holding)
+  stressAccumulation: number; // 0-100 (long-term stress)
+  fatigue: number; // 0-100 (overall fatigue)
+  hydration: number; // 0-100 (dehydration level)
+}
+
+export interface SkillTree {
+  bladderControl: {
+    level: number;
+    capacity: number; // bonus capacity from training
+    control: number; // bonus control precision
+    endurance: number; // bonus holding time
+  };
+  socialMedia: {
+    level: number;
+    contentQuality: number; // better posts
+    engagement: number; // more followers per post
+    monetization: number; // better donation rates
+  };
+  career: {
+    level: number;
+    productivity: number; // work efficiency
+    professionalism: number; // reputation at work
+    workLifeBalance: number; // stress reduction
+  };
+  relationships: {
+    level: number;
+    empathy: number; // better interactions
+    communication: number; // better conversations
+    trust: number; // relationship stability
+  };
 }
 
 export interface ActiveDrug {
@@ -433,7 +476,7 @@ export type WardrobeType = 'skirt' | 'dress' | 'leggings' | 'jeans' | 'overalls'
 
 export type Posture = 'standing' | 'sitting' | 'walking' | 'running' | 'lying_down';
 
-export type LocationType = 'home' | 'office' | 'car' | 'bathroom' | 'bedroom' | 'kitchen' | 'meeting_room' | 'elevator';
+export type LocationType = 'home' | 'office' | 'car' | 'bathroom' | 'bedroom' | 'kitchen' | 'meeting_room' | 'elevator' | 'gym' | 'restaurant' | 'mall' | 'beach' | 'airport' | 'concert';
 
 export interface Scenario {
   id: string;

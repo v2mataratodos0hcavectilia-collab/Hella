@@ -203,6 +203,49 @@ const INITIAL_STATE: SimulationState = {
   
   // Custom Scenarios
   customScenarios: [],
+  
+  // Consequence System
+  healthEffects: {
+    bladderDamage: 0,
+    stressAccumulation: 0,
+    fatigue: 0,
+    hydration: 100,
+  },
+  reputation: 50,
+  careerProgress: 0,
+  relationshipStatus: {
+    'mom': 50,
+    'dad': 50,
+    'sister': 50,
+  },
+  
+  // Skill Trees
+  skills: {
+    bladderControl: {
+      level: 0,
+      capacity: 0,
+      control: 0,
+      endurance: 0,
+    },
+    socialMedia: {
+      level: 0,
+      contentQuality: 0,
+      engagement: 0,
+      monetization: 0,
+    },
+    career: {
+      level: 0,
+      productivity: 0,
+      professionalism: 0,
+      workLifeBalance: 0,
+    },
+    relationships: {
+      level: 0,
+      empathy: 0,
+      communication: 0,
+      trust: 0,
+    },
+  },
 };
 
 interface PlayerOverrides {
@@ -1083,6 +1126,52 @@ export function useSimulation() {
         newState.diureticMultiplier = 1;
       }
 
+      // Consequence System - Track long-term effects
+      // Bladder damage from extreme holding (>90% capacity for extended periods)
+      if (fillRatio > 0.9) {
+        const damageRate = (fillRatio - 0.9) * 0.01 * simDt; // More damage the fuller
+        newState.healthEffects.bladderDamage = Math.min(100, newState.healthEffects.bladderDamage + damageRate);
+      } else {
+        // Slow recovery when not holding extreme
+        newState.healthEffects.bladderDamage = Math.max(0, newState.healthEffects.bladderDamage - 0.001 * simDt);
+      }
+
+      // Stress accumulation
+      if (newState.stressLevel > 50) {
+        const stressRate = (newState.stressLevel - 50) * 0.005 * simDt;
+        newState.healthEffects.stressAccumulation = Math.min(100, newState.healthEffects.stressAccumulation + stressRate);
+      } else {
+        // Recovery when relaxed
+        newState.healthEffects.stressAccumulation = Math.max(0, newState.healthEffects.stressAccumulation - 0.002 * simDt);
+      }
+
+      // Fatigue from lack of sleep
+      if (!newState.isSleeping) {
+        newState.healthEffects.fatigue = Math.min(100, newState.healthEffects.fatigue + 0.01 * simDt);
+      } else {
+        // Recovery during sleep
+        newState.healthEffects.fatigue = Math.max(0, newState.healthEffects.fatigue - 0.05 * simDt);
+      }
+
+      // Hydration from drinking
+      if (newState.lastDrinkType && newState.simTime - newState.lastDrinkTime < 1800) {
+        newState.healthEffects.hydration = Math.min(100, newState.healthEffects.hydration + 0.1 * simDt);
+      } else {
+        // Dehydration over time
+        newState.healthEffects.hydration = Math.max(0, newState.healthEffects.hydration - 0.005 * simDt);
+      }
+
+      // Reputation changes from social media
+      if (newState.followerCount > 0) {
+        const reputationGain = 0.001 * simDt * (newState.followerCount / 100);
+        newState.reputation = Math.min(100, newState.reputation + reputationGain);
+      }
+
+      // Career progress based on location and time
+      if (newState.location === 'office' || newState.location === 'meeting_room') {
+        newState.careerProgress = Math.min(100, newState.careerProgress + 0.005 * simDt);
+      }
+
       // Update AI (respects player overrides)
       newState = updateAI(newState, simDt, overridesRef.current);
 
@@ -1705,6 +1794,44 @@ export function useSimulation() {
     }));
   }, []);
 
+  // Skill tree upgrade function
+  const upgradeSkill = useCallback((tree: 'bladderControl' | 'socialMedia' | 'career' | 'relationships', skill: string, cost: number) => {
+    setState(prev => {
+      if (prev.money < cost) return prev;
+      
+      const newSkills = { ...prev.skills };
+      
+      // Update the specific skill tree
+      if (tree === 'bladderControl') {
+        newSkills.bladderControl = {
+          ...newSkills.bladderControl,
+          level: newSkills.bladderControl.level + 1,
+        };
+      } else if (tree === 'socialMedia') {
+        newSkills.socialMedia = {
+          ...newSkills.socialMedia,
+          level: newSkills.socialMedia.level + 1,
+        };
+      } else if (tree === 'career') {
+        newSkills.career = {
+          ...newSkills.career,
+          level: newSkills.career.level + 1,
+        };
+      } else if (tree === 'relationships') {
+        newSkills.relationships = {
+          ...newSkills.relationships,
+          level: newSkills.relationships.level + 1,
+        };
+      }
+      
+      return {
+        ...prev,
+        skills: newSkills,
+        money: prev.money - cost,
+      };
+    });
+  }, []);
+
   return {
     state,
     overrides,
@@ -1748,5 +1875,6 @@ export function useSimulation() {
     addCommentToPost,
     postRecommendation,
     jumpTime,
+    upgradeSkill,
   };
 }

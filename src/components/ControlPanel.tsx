@@ -637,7 +637,7 @@ export default function ControlPanel({
             <span className="text-[10px] text-gray-500">Location{overrides.location && ' 🔒'}:</span>
           </div>
           <div className="grid grid-cols-4 gap-1">
-            {(['home', 'office', 'car', 'bathroom', 'bedroom', 'kitchen', 'meeting_room', 'elevator'] as LocationType[]).map(loc => (
+            {(['home', 'office', 'car', 'bathroom', 'bedroom', 'kitchen', 'meeting_room', 'elevator', 'gym', 'restaurant', 'mall', 'beach', 'airport', 'concert'] as LocationType[]).map(loc => (
               <button
                 key={loc}
                 onClick={() => setLocation(loc)}

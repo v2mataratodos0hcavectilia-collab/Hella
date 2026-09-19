@@ -239,7 +239,14 @@ function Character({ state }: { state: SimulationState }) {
 function Environment3D({ state }: { state: SimulationState }) {
   const floorColor = state.location === 'office' || state.location === 'meeting_room' ? '#4a4a4a' : 
                      state.location === 'bathroom' ? '#d4e6f1' :
-                     state.location === 'car' ? '#2c2c2c' : '#8b7355';
+                     state.location === 'car' ? '#2c2c2c' :
+                     state.location === 'gym' ? '#3d3d3d' :
+                     state.location === 'restaurant' ? '#5c4033' :
+                     state.location === 'mall' ? '#e8e8e8' :
+                     state.location === 'beach' ? '#f4e4c1' :
+                     state.location === 'airport' ? '#6b6b6b' :
+                     state.location === 'concert' ? '#2a2a2a' :
+                     '#8b7355';
 
   return (
     <group>
@@ -310,6 +317,148 @@ function Environment3D({ state }: { state: SimulationState }) {
             <torusGeometry args={[0.15, 0.02, 8, 32]} />
             <meshStandardMaterial color="#333333" roughness={0.5} />
           </mesh>
+        </group>
+      )}
+
+      {state.location === 'gym' && (
+        <group>
+          {/* Weight rack */}
+          <mesh position={[2, 0.5, -2]}>
+            <boxGeometry args={[0.3, 1, 0.3]} />
+            <meshStandardMaterial color="#4a4a4a" roughness={0.6} />
+          </mesh>
+          <mesh position={[2.5, 0.5, -2]}>
+            <boxGeometry args={[0.3, 1, 0.3]} />
+            <meshStandardMaterial color="#4a4a4a" roughness={0.6} />
+          </mesh>
+          {/* Bench */}
+          <mesh position={[-2, 0.3, 0]}>
+            <boxGeometry args={[1.5, 0.1, 0.4]} />
+            <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+          </mesh>
+          {/* Dumbbells */}
+          <mesh position={[-1.5, 0.5, 1]}>
+            <cylinderGeometry args={[0.1, 0.1, 0.3, 8]} />
+            <meshStandardMaterial color="#666666" roughness={0.5} />
+          </mesh>
+        </group>
+      )}
+
+      {state.location === 'restaurant' && (
+        <group>
+          {/* Table */}
+          <mesh position={[0, 0.4, -2]}>
+            <cylinderGeometry args={[0.8, 0.8, 0.05, 16]} />
+            <meshStandardMaterial color="#8b4513" roughness={0.6} />
+          </mesh>
+          {/* Chairs */}
+          <mesh position={[-0.8, 0.3, -2]}>
+            <boxGeometry args={[0.3, 0.6, 0.3]} />
+            <meshStandardMaterial color="#654321" roughness={0.7} />
+          </mesh>
+          <mesh position={[0.8, 0.3, -2]}>
+            <boxGeometry args={[0.3, 0.6, 0.3]} />
+            <meshStandardMaterial color="#654321" roughness={0.7} />
+          </mesh>
+          {/* Candle */}
+          <mesh position={[0, 0.5, -2]}>
+            <cylinderGeometry args={[0.05, 0.05, 0.15, 8]} />
+            <meshStandardMaterial color="#ffff99" roughness={0.3} emissive="#ffff00" emissiveIntensity={0.3} />
+          </mesh>
+        </group>
+      )}
+
+      {state.location === 'mall' && (
+        <group>
+          {/* Store front */}
+          <mesh position={[3, 1, -3]}>
+            <boxGeometry args={[2, 2, 0.2]} />
+            <meshStandardMaterial color="#e0e0e0" roughness={0.5} />
+          </mesh>
+          {/* Shopping bags */}
+          <mesh position={[-2, 0.3, 1]}>
+            <boxGeometry args={[0.3, 0.4, 0.2]} />
+            <meshStandardMaterial color="#ff69b4" roughness={0.6} />
+          </mesh>
+          <mesh position={[-1.5, 0.3, 1.2]}>
+            <boxGeometry args={[0.25, 0.35, 0.18]} />
+            <meshStandardMaterial color="#4169e1" roughness={0.6} />
+          </mesh>
+          {/* Bench */}
+          <mesh position={[0, 0.2, 2]}>
+            <boxGeometry args={[1.5, 0.1, 0.4]} />
+            <meshStandardMaterial color="#8b7355" roughness={0.7} />
+          </mesh>
+        </group>
+      )}
+
+      {state.location === 'beach' && (
+        <group>
+          {/* Beach umbrella */}
+          <mesh position={[2, 1.5, -2]}>
+            <coneGeometry args={[1, 0.5, 16]} />
+            <meshStandardMaterial color="#ff6347" roughness={0.6} />
+          </mesh>
+          <mesh position={[2, 0.75, -2]}>
+            <cylinderGeometry args={[0.05, 0.05, 1.5, 8]} />
+            <meshStandardMaterial color="#8b4513" roughness={0.7} />
+          </mesh>
+          {/* Beach towel */}
+          <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[1.5, 2]} />
+            <meshStandardMaterial color="#20b2aa" roughness={0.8} />
+          </mesh>
+          {/* Beach ball */}
+          <mesh position={[-2, 0.3, 1]}>
+            <sphereGeometry args={[0.3, 16, 16]} />
+            <meshStandardMaterial color="#ff4500" roughness={0.5} />
+          </mesh>
+        </group>
+      )}
+
+      {state.location === 'airport' && (
+        <group>
+          {/* Luggage */}
+          <mesh position={[-2, 0.4, 0]}>
+            <boxGeometry args={[0.5, 0.8, 0.3]} />
+            <meshStandardMaterial color="#1e90ff" roughness={0.6} />
+          </mesh>
+          <mesh position={[-1.5, 0.3, 0.2]}>
+            <boxGeometry args={[0.4, 0.6, 0.25]} />
+            <meshStandardMaterial color="#ff6347" roughness={0.6} />
+          </mesh>
+          {/* Gate bench */}
+          <mesh position={[2, 0.3, -2]}>
+            <boxGeometry args={[2, 0.1, 0.5]} />
+            <meshStandardMaterial color="#696969" roughness={0.7} />
+          </mesh>
+          {/* Departure board */}
+          <mesh position={[0, 2, -4]}>
+            <boxGeometry args={[2, 1, 0.1]} />
+            <meshStandardMaterial color="#000000" roughness={0.3} emissive="#00ff00" emissiveIntensity={0.2} />
+          </mesh>
+        </group>
+      )}
+
+      {state.location === 'concert' && (
+        <group>
+          {/* Stage */}
+          <mesh position={[0, 0.3, -4]}>
+            <boxGeometry args={[6, 0.6, 2]} />
+            <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+          </mesh>
+          {/* Speakers */}
+          <mesh position={[-3, 1, -3]}>
+            <boxGeometry args={[0.8, 1.2, 0.6]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+          </mesh>
+          <mesh position={[3, 1, -3]}>
+            <boxGeometry args={[0.8, 1.2, 0.6]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+          </mesh>
+          {/* Lights */}
+          <pointLight position={[-2, 3, -2]} intensity={0.5} color="#ff00ff" />
+          <pointLight position={[2, 3, -2]} intensity={0.5} color="#00ffff" />
         </group>
       )}
     </group>

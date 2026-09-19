@@ -26,6 +26,8 @@ import DailyChallenges from './components/DailyChallenges';
 import DynamicEvents from './components/DynamicEvents';
 import PredictionSystem from './components/PredictionSystem';
 import TimeManipulation from './components/TimeManipulation';
+import ConsequencePanel from './components/ConsequencePanel';
+import SkillTreePanel from './components/SkillTreePanel';
 import { Scenario } from './types';
 
 function CollapsibleBottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -93,10 +95,11 @@ function App() {
     addCommentToPost,
     postRecommendation,
     jumpTime,
+    upgradeSkill,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements' | 'stats' | 'challenges' | 'events' | 'prediction' | 'time'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements' | 'stats' | 'challenges' | 'events' | 'prediction' | 'time' | 'consequences' | 'skills'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
@@ -265,6 +268,18 @@ function App() {
             >
               ⏰ Time
             </button>
+            <button
+              onClick={() => setActiveView('consequences')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'consequences' ? 'bg-rose-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              ⚠️ Consequences
+            </button>
+            <button
+              onClick={() => setActiveView('skills')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'skills' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🌟 Skills
+            </button>
           </div>
       </header>
 
@@ -341,6 +356,14 @@ function App() {
                   togglePause={togglePause}
                   jumpTime={jumpTime}
                 />
+              </div>
+            ) : activeView === 'consequences' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <ConsequencePanel state={state} />
+              </div>
+            ) : activeView === 'skills' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <SkillTreePanel state={state} upgradeSkill={upgradeSkill} />
               </div>
             ) : (
               <div className="flex-1 p-1">
