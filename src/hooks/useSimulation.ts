@@ -113,6 +113,8 @@ const INITIAL_STATE: SimulationState = {
   isDead: false,
   deathCause: '',
   consciousnessLevel: 100,
+  deathCountdown: 0,
+  isDying: false,
   
   // Nanobot control
   nanobotsActive: false,
@@ -676,51 +678,90 @@ export function useSimulation() {
         }
       }
 
-      // Death/pass out mechanics
-      // Pass out if heart rate too high or too low, or breathing too low
-      if (!newState.isPassedOut && !newState.isDead) {
-        if (newState.heartRate > 250 || (newState.heartRate < 30 && newState.heartRate > 0)) {
-          newState.isPassedOut = true;
-          newState.passOutTime = newState.simTime;
-          newState.consciousnessLevel = 0;
-        } else if (newState.breathingRate < 5 && newState.breathingRate > 0) {
-          newState.isPassedOut = true;
-          newState.passOutTime = newState.simTime;
-          newState.consciousnessLevel = 0;
-        }
-      }
-
-      // Die if conditions are extreme
+      // Gradual death system - consciousness drain based on vitals
       if (!newState.isDead) {
+        let consciousnessDrainRate = 0; // % per second
+        let deathCause = '';
+        
+        // Heart rate effects
         if (newState.heartRate === 0) {
-          newState.isDead = true;
-          newState.deathCause = 'Cardiac arrest (0 BPM)';
-        } else if (newState.breathingRate === 0) {
-          newState.isDead = true;
-          newState.deathCause = 'Respiratory arrest (0 BrPM)';
-        } else if (newState.heartRate > 300 || newState.heartRate < 20) {
-          newState.isDead = true;
-          newState.deathCause = newState.heartRate > 300 ? 'Ventricular fibrillation' : 'Cardiac arrest';
+          consciousnessDrainRate += 10; // Fast drain - cardiac arrest
+          deathCause = 'Cardiac arrest (0 BPM)';
+        } else if (newState.heartRate < 20) {
+          consciousnessDrainRate += 5; // Severe bradycardia
+          deathCause = 'Severe bradycardia';
+        } else if (newState.heartRate < 30) {
+          consciousnessDrainRate += 2; // Moderate bradycardia
+          deathCause = 'Bradycardia';
+        } else if (newState.heartRate > 350) {
+          consciousnessDrainRate += 10; // Ventricular fibrillation
+          deathCause = 'Ventricular fibrillation';
+        } else if (newState.heartRate > 300) {
+          consciousnessDrainRate += 5; // Extreme tachycardia
+          deathCause = 'Extreme tachycardia';
+        } else if (newState.heartRate > 250) {
+          consciousnessDrainRate += 2; // Severe tachycardia
+          deathCause = 'Severe tachycardia';
+        }
+        
+        // Breathing rate effects
+        if (newState.breathingRate === 0) {
+          consciousnessDrainRate += 10; // Respiratory arrest
+          deathCause = 'Respiratory arrest (0 BrPM)';
         } else if (newState.breathingRate < 3) {
-          newState.isDead = true;
-          newState.deathCause = 'Respiratory failure';
-        } else if (newState.isOverdosing && newState.overdoseDrug) {
+          consciousnessDrainRate += 5; // Severe respiratory depression
+          deathCause = 'Severe respiratory depression';
+        } else if (newState.breathingRate < 5) {
+          consciousnessDrainRate += 2; // Respiratory depression
+          deathCause = 'Respiratory depression';
+        }
+        
+        // Overdose effects
+        if (newState.isOverdosing && newState.overdoseDrug) {
           const drugType = newState.overdoseDrug as DrugType;
           const drugProps = DRUG_PROPERTIES[drugType];
           if (drugProps.overdoseSymptoms?.includes('death')) {
-            newState.isDead = true;
-            newState.deathCause = `Overdose: ${drugProps.name}`;
+            consciousnessDrainRate += 3;
+            deathCause = `Overdose: ${drugProps.name}`;
           }
         }
-      }
-
-      // Recovery from pass out
-      if (newState.isPassedOut && !newState.isDead) {
-        // Wake up after 5 minutes if vitals normalize
-        if (newState.simTime - newState.passOutTime > 300) {
-          if (newState.heartRate >= 40 && newState.heartRate <= 180 && newState.breathingRate >= 8) {
+        
+        // Apply consciousness drain
+        if (consciousnessDrainRate > 0) {
+          newState.consciousnessLevel = Math.max(0, newState.consciousnessLevel - consciousnessDrainRate * simDt);
+          newState.isDying = true;
+          
+          if (deathCause && !newState.deathCause) {
+            newState.deathCause = deathCause;
+          }
+          
+          // Pass out when consciousness gets low
+          if (newState.consciousnessLevel < 20 && !newState.isPassedOut) {
+            newState.isPassedOut = true;
+            newState.passOutTime = newState.simTime;
+          }
+          
+          // Track death countdown
+          if (newState.consciousnessLevel === 0) {
+            newState.deathCountdown += simDt;
+            
+            // Die after 30 seconds at 0 consciousness
+            if (newState.deathCountdown >= 30) {
+              newState.isDead = true;
+            }
+          } else {
+            newState.deathCountdown = 0;
+          }
+        } else {
+          // Recovery - consciousness regenerates when vitals are healthy
+          newState.isDying = false;
+          if (newState.consciousnessLevel < 100) {
+            newState.consciousnessLevel = Math.min(100, newState.consciousnessLevel + 1 * simDt);
+          }
+          
+          // Wake up from pass out if consciousness recovers
+          if (newState.isPassedOut && newState.consciousnessLevel > 50) {
             newState.isPassedOut = false;
-            newState.consciousnessLevel = 100;
           }
         }
       }

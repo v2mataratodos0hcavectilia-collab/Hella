@@ -59,6 +59,15 @@ export default function StatsPanel({ state }: StatsPanelProps) {
           color={state.breathingRate > 20 ? 'text-orange-400' : 'text-cyan-400'}
         />
 
+        {/* Consciousness */}
+        <StatItem
+          label="CONSCIOUSNESS"
+          value={`${state.consciousnessLevel.toFixed(0)}%`}
+          color={state.consciousnessLevel < 20 ? 'text-red-400' : state.consciousnessLevel < 50 ? 'text-yellow-400' : 'text-green-400'}
+          bar={state.consciousnessLevel}
+          barColor={state.consciousnessLevel < 20 ? 'bg-red-500' : state.consciousnessLevel < 50 ? 'bg-yellow-500' : 'bg-green-500'}
+        />
+
         {/* Nerve Sensitivity */}
         <StatItem
           label="NERVES"
@@ -102,11 +111,19 @@ export default function StatsPanel({ state }: StatsPanelProps) {
         />
 
         {/* Status Indicators */}
-        {state.isPassedOut && (
+        {state.isPassedOut && !state.isDying && !state.isDead && (
           <StatItem
             label="STATUS"
             value="PASSED OUT"
             color="text-yellow-400 animate-pulse"
+          />
+        )}
+
+        {state.isDying && !state.isDead && (
+          <StatItem
+            label="DYING"
+            value={`${Math.ceil(30 - state.deathCountdown)}s`}
+            color="text-red-400 animate-pulse"
           />
         )}
 

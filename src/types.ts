@@ -106,6 +106,8 @@ export interface SimulationState {
   isDead: boolean;
   deathCause: string;
   consciousnessLevel: number; // 0-100%
+  deathCountdown: number; // seconds until death (0 = dead)
+  isDying: boolean; // in critical condition but not yet dead
   
   // Nanobot control
   nanobotsActive: boolean;
