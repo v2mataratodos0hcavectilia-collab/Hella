@@ -1015,10 +1015,10 @@ export function useSimulation() {
         const bulgingMultiplier = fillRatio > 1.0 ? 2.0 : 1.0;
         const rawLevel = newState.trainingLevel + simDt * trainingRate * bulgingMultiplier;
         // Round to nearest hundredth
-        newState.trainingLevel = Math.min(90, Math.round(rawLevel * 100) / 100);
-        // Round maxCapacity to nearest 100
-        const rawCapacity = 500 + newState.trainingLevel * 10;
-        newState.maxCapacity = Math.min(1400, Math.round(rawCapacity / 100) * 100);
+        newState.trainingLevel = Math.min(100, Math.round(rawLevel * 100) / 100);
+        // Linear capacity increase: 18ml per level (500ml at level 0, 2300ml at level 100)
+        const rawCapacity = 500 + newState.trainingLevel * 18;
+        newState.maxCapacity = Math.min(2300, Math.round(rawCapacity / 100) * 100);
         newState.desensitizationLevel = Math.min(100, newState.desensitizationLevel + simDt * trainingRate * 10);
         newState.nerveSensitivity = Math.max(30, 100 - newState.desensitizationLevel * 0.7);
       }
@@ -1594,6 +1594,54 @@ export function useSimulation() {
     });
   }, [state.playerAccount.isSignedUp, state.playerAccount.playerSuggestions]);
 
+  // Add comment to a post
+  const addCommentToPost = useCallback((postId: string, content: string) => {
+    setState(prev => {
+      if (!prev.playerAccount.isSignedUp) return prev;
+      
+      const newComment = {
+        id: `comment_${Date.now()}_${Math.random()}`,
+        author: prev.playerAccount.username,
+        content,
+        timestamp: prev.simTime,
+        likes: 0,
+        isFromPlayer: true,
+      };
+      
+      return {
+        ...prev,
+        socialMediaPosts: prev.socialMediaPosts.map(post =>
+          post.id === postId
+            ? { ...post, commentList: [...(post.commentList || []), newComment], comments: post.comments + 1 }
+            : post
+        ),
+      };
+    });
+  }, []);
+
+  // Post a recommendation
+  const postRecommendation = useCallback((content: string) => {
+    setState(prev => {
+      if (!prev.playerAccount.isSignedUp) return prev;
+      
+      const newPost = {
+        id: `rec_${Date.now()}_${Math.random()}`,
+        author: prev.playerAccount.username,
+        content: `⭐ Recommendation: ${content}`,
+        timestamp: prev.simTime,
+        likes: 0,
+        comments: 0,
+        isFromUser: true,
+        isRecommendation: true,
+      };
+      
+      return {
+        ...prev,
+        socialMediaPosts: [newPost, ...prev.socialMediaPosts].slice(0, 50),
+      };
+    });
+  }, []);
+
   return {
     state,
     overrides,
@@ -1634,5 +1682,7 @@ export function useSimulation() {
     setCameraViewMode,
     startSignup,
     makePlayerSuggestion,
+    addCommentToPost,
+    postRecommendation,
   };
 }

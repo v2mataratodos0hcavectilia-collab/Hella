@@ -81,6 +81,8 @@ function App() {
     setCameraViewMode,
     startSignup,
     makePlayerSuggestion,
+    addCommentToPost,
+    postRecommendation,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -218,6 +220,8 @@ function App() {
                   setViewedProfile={setViewedProfile}
                   startSignup={startSignup}
                   makePlayerSuggestion={makePlayerSuggestion}
+                  addCommentToPost={addCommentToPost}
+                  postRecommendation={postRecommendation}
                 />
               </div>
             ) : activeView === 'heart' ? (

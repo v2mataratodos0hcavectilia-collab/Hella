@@ -57,7 +57,7 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
-  // Signup screen
+  // Signup screen - always show at top if not signed up
   if (!state.playerAccount.isSignedUp) {
     const presetNames = [
       { name: 'vec', emoji: '⚡', color: 'from-blue-500 to-cyan-500' },
@@ -88,160 +88,163 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
     };
 
     return (
-      <div className="bg-gray-900 border-t border-gray-700 p-6">
-        <div className="max-w-md mx-auto">
-          <h3 className="text-2xl font-bold text-white mb-2 text-center">👤 Create Your Account</h3>
-          <p className="text-gray-400 text-sm mb-6 text-center">Join BladderChat and start interacting!</p>
-          
-          {state.playerAccount.signupProgress > 0 && state.playerAccount.signupProgress < 100 ? (
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-400 mb-2">Setting up your account...</div>
-                <div className="text-sm text-gray-400">{state.playerAccount.signupProgress.toFixed(0)}% complete</div>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
-                  style={{ width: `${state.playerAccount.signupProgress}%` }}
-                />
-              </div>
-              <div className="text-xs text-gray-500 text-center space-y-1">
-                {state.playerAccount.signupProgress < 25 && <div>✓ Creating profile...</div>}
-                {state.playerAccount.signupProgress >= 25 && state.playerAccount.signupProgress < 50 && <div>✓ Setting up feed...</div>}
-                {state.playerAccount.signupProgress >= 50 && state.playerAccount.signupProgress < 75 && <div>✓ Connecting to community...</div>}
-                {state.playerAccount.signupProgress >= 75 && <div>✓ Finalizing setup...</div>}
-              </div>
-            </div>
-          ) : signupStep === 0 ? (
-            // Step 1: Choose preset name
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-300 mb-4">Choose your username:</div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {presetNames.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => handlePresetSelect(preset.name)}
-                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                      selectedPreset === preset.name
-                        ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="text-3xl mb-2">{preset.emoji}</div>
-                    <div className={`text-lg font-bold bg-gradient-to-r ${preset.color} bg-clip-text text-transparent`}>
-                      {preset.name}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div className="text-xs text-gray-500 text-center">
-                Select a preset name to continue
-              </div>
-            </div>
-          ) : signupStep === 1 ? (
-            // Step 2: Auto-fill profile
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-300 mb-4">Profile auto-generated:</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-4 space-y-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Username</label>
-                  <div className="text-white font-bold text-lg">{selectedPreset}</div>
+      <div className="bg-gray-900 border-t border-gray-700 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="p-6">
+          <div className="max-w-md mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-2 text-center">👤 Create Your Account</h3>
+            <p className="text-gray-400 text-sm mb-6 text-center">Join BladderChat and start interacting!</p>
+            
+            {state.playerAccount.signupProgress > 0 && state.playerAccount.signupProgress < 100 ? (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-400 mb-2">Setting up your account...</div>
+                  <div className="text-sm text-gray-400">{state.playerAccount.signupProgress.toFixed(0)}% complete</div>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Email</label>
-                  <div className="text-gray-300">{autoFillData.email}</div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
+                    style={{ width: `${state.playerAccount.signupProgress}%` }}
+                  />
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Avatar</label>
-                  <div className="text-3xl">{autoFillData.avatar}</div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Bio</label>
-                  <div className="text-gray-300 text-sm">{autoFillData.bio}</div>
+                <div className="text-xs text-gray-500 text-center space-y-1">
+                  {state.playerAccount.signupProgress < 25 && <div>✓ Creating profile...</div>}
+                  {state.playerAccount.signupProgress >= 25 && state.playerAccount.signupProgress < 50 && <div>✓ Setting up feed...</div>}
+                  {state.playerAccount.signupProgress >= 50 && state.playerAccount.signupProgress < 75 && <div>✓ Connecting to community...</div>}
+                  {state.playerAccount.signupProgress >= 75 && <div>✓ Finalizing setup...</div>}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSignupStep(0)}
-                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleAutoFillConfirm}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
-                >
-                  Continue
-                </button>
+            ) : signupStep === 0 ? (
+              // Step 1: Choose preset name
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-sm font-medium text-gray-300 mb-4">Choose your username:</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {presetNames.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => handlePresetSelect(preset.name)}
+                      className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                        selectedPreset === preset.name
+                          ? 'border-blue-500 bg-blue-500/20'
+                          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-3xl mb-2">{preset.emoji}</div>
+                      <div className={`text-lg font-bold bg-gradient-to-r ${preset.color} bg-clip-text text-transparent`}>
+                        {preset.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-500 text-center">
+                  Select a preset name to continue
+                </div>
               </div>
-            </div>
-          ) : (
-            // Step 3: Final confirmation
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-300 mb-4">Confirm your account:</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="text-4xl">{autoFillData.avatar}</div>
+            ) : signupStep === 1 ? (
+              // Step 2: Auto-fill profile
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-sm font-medium text-gray-300 mb-4">Profile auto-generated:</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 space-y-3">
                   <div>
-                    <div className="text-white font-bold text-xl">{selectedPreset}</div>
-                    <div className="text-gray-400 text-sm">{autoFillData.email}</div>
+                    <label className="block text-xs text-gray-400 mb-1">Username</label>
+                    <div className="text-white font-bold text-lg">{selectedPreset}</div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Email</label>
+                    <div className="text-gray-300">{autoFillData.email}</div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Avatar</label>
+                    <div className="text-3xl">{autoFillData.avatar}</div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Bio</label>
+                    <div className="text-gray-300 text-sm">{autoFillData.bio}</div>
                   </div>
                 </div>
-                <div className="text-gray-300 text-sm border-t border-gray-700 pt-3">
-                  {autoFillData.bio}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSignupStep(0)}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleAutoFillConfirm}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                  >
+                    Continue
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSignupStep(1)}
-                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleFinalSignup}
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-500 transition-colors"
-                >
-                  Create Account
-                </button>
+            ) : (
+              // Step 3: Final confirmation
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-sm font-medium text-gray-300 mb-4">Confirm your account:</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="text-4xl">{autoFillData.avatar}</div>
+                    <div>
+                      <div className="text-white font-bold text-xl">{selectedPreset}</div>
+                      <div className="text-gray-400 text-sm">{autoFillData.email}</div>
+                    </div>
+                  </div>
+                  <div className="text-gray-300 text-sm border-t border-gray-700 pt-3">
+                    {autoFillData.bio}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSignupStep(1)}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleFinalSignup}
+                    className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-500 transition-colors"
+                  >
+                    Create Account
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500 text-center">
+                  Account setup will take 20 seconds
+                </div>
               </div>
-              <div className="text-xs text-gray-500 text-center">
-                Account setup will take 20 seconds
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-900 border-t border-gray-700 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors"
-          >
-            ← Back
-          </button>
-          <h3 className="text-lg font-bold text-white">👤 My Account</h3>
+    <div className="bg-gray-900 border-t border-gray-700 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onExit}
+              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition-colors"
+            >
+              ← Back
+            </button>
+            <h3 className="text-lg font-bold text-white">👤 My Account</h3>
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-gray-400">
+              💰 <span className="text-green-400">${state.money.toFixed(2)}</span>
+            </span>
+            <span className="text-gray-400">
+              👥 <span className="text-blue-400">{state.followerCount}</span> followers
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-gray-400">
-            💰 <span className="text-green-400">${state.money.toFixed(2)}</span>
-          </span>
-          <span className="text-gray-400">
-            👥 <span className="text-blue-400">{state.followerCount}</span> followers
-          </span>
-        </div>
-      </div>
 
       {/* Create Post */}
       <div className="mb-6">
@@ -376,6 +379,7 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

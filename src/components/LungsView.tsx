@@ -14,26 +14,39 @@ function Lungs({ breathingRate, breathDeepness, bloodO2Level }: {
   const rightBronchiRef = useRef<THREE.Mesh>(null);
 
   useFrame(() => {
-    const breathCycle = 60 / breathingRate; // seconds per breath
+    // Ensure minimum breath deepness of 1%
+    const effectiveDeepness = Math.max(1, breathDeepness);
+    
+    // Calculate breath cycle duration (seconds per breath)
+    // Higher breathing rate = faster cycle
+    const breathCycle = breathingRate > 0 ? 60 / breathingRate : 999; // Very slow if rate is 0
     const time = Date.now() * 0.001;
     const breathPhase = (time % breathCycle) / breathCycle;
     
-    // Lung expansion based on breathing
+    // Smooth lung expansion using sine wave for natural breathing
+    // Expansion ranges from 1.0 (rest) to 1.0 + (effectiveDeepness * 0.002) (full inhale)
+    const maxExpansion = 1.0 + (effectiveDeepness * 0.002); // 1% deepness = 1.002, 100% = 1.2
+    
+    // Smooth sine wave for natural breathing cycle
+    // 0-0.4: Inhale (0 to max expansion)
+    // 0.4-0.6: Hold at peak
+    // 0.6-1.0: Exhale (max expansion back to 1.0)
     let expansion = 1.0;
-    if (breathPhase < 0.3) {
-      // Inhalation
-      expansion = 1.0 + (breathPhase / 0.3) * 0.15 * (breathDeepness / 100);
-    } else if (breathPhase < 0.5) {
-      // Hold
-      expansion = 1.15 * (breathDeepness / 100);
-    } else if (breathPhase < 0.8) {
-      // Exhalation
-      expansion = 1.15 * (breathDeepness / 100) - ((breathPhase - 0.5) / 0.3) * 0.15 * (breathDeepness / 100);
+    
+    if (breathPhase < 0.4) {
+      // Inhale phase - smooth acceleration
+      const inhaleProgress = breathPhase / 0.4;
+      expansion = 1.0 + (Math.sin(inhaleProgress * Math.PI * 0.5) * (maxExpansion - 1.0));
+    } else if (breathPhase < 0.6) {
+      // Hold phase - maintain peak expansion
+      expansion = maxExpansion;
     } else {
-      // Rest
-      expansion = 1.0;
+      // Exhale phase - smooth deceleration
+      const exhaleProgress = (breathPhase - 0.6) / 0.4;
+      expansion = maxExpansion - (Math.sin(exhaleProgress * Math.PI * 0.5) * (maxExpansion - 1.0));
     }
 
+    // Apply expansion to lungs
     if (leftLungRef.current) {
       leftLungRef.current.scale.set(expansion, expansion, expansion);
     }
@@ -41,8 +54,8 @@ function Lungs({ breathingRate, breathDeepness, bloodO2Level }: {
       rightLungRef.current.scale.set(expansion, expansion, expansion);
     }
 
-    // Bronchi dilation
-    const bronchiScale = 0.8 + (breathDeepness / 100) * 0.4;
+    // Bronchi dilation based on deepness
+    const bronchiScale = 0.8 + (effectiveDeepness / 100) * 0.4;
     if (leftBronchiRef.current) {
       leftBronchiRef.current.scale.set(bronchiScale, 1, bronchiScale);
     }

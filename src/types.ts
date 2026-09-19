@@ -180,6 +180,7 @@ export interface SocialMediaPost {
   isFromUser?: boolean;
   replyTo?: string;
   commentList?: SocialMediaComment[];
+  isRecommendation?: boolean;
 }
 
 export interface SocialMediaComment {

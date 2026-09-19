@@ -7,10 +7,14 @@ interface SocialMediaViewProps {
   setViewedProfile: (profile: string | null) => void;
   startSignup: (username: string) => void;
   makePlayerSuggestion: (content: string) => void;
+  addCommentToPost: (postId: string, content: string) => void;
+  postRecommendation: (content: string) => void;
 }
 
-export default function SocialMediaView({ state, setActiveTab, setViewedProfile, startSignup, makePlayerSuggestion }: SocialMediaViewProps) {
+export default function SocialMediaView({ state, setActiveTab, setViewedProfile, startSignup, makePlayerSuggestion, addCommentToPost, postRecommendation }: SocialMediaViewProps) {
   const [liveChat, setLiveChat] = useState<Array<{ user: string; message: string; timestamp: number }>>([]);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [recommendationInput, setRecommendationInput] = useState('');
 
   const formatTime = (simTime: number) => {
     const h = Math.floor(simTime / 3600) % 24;
@@ -317,6 +321,61 @@ export default function SocialMediaView({ state, setActiveTab, setViewedProfile,
                         <span>❤️ {post.likes}</span>
                         <span>💬 {post.comments}</span>
                       </div>
+                      
+                      {/* Comments list */}
+                      {post.commentList && post.commentList.length > 0 && (
+                        <div className="mt-2 space-y-1 ml-4 border-l-2 border-gray-700 pl-2">
+                          {post.commentList.map((comment) => (
+                            <div key={comment.id} className="flex items-start gap-2">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                comment.isFromPlayer ? 'bg-blue-600' : 'bg-gray-600'
+                              }`}>
+                                {comment.author[0]}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className={`text-[10px] font-bold ${comment.isFromPlayer ? 'text-blue-300' : 'text-gray-400'}`}>
+                                    @{comment.author}
+                                  </span>
+                                  <span className="text-[9px] text-gray-600">{formatTime(comment.timestamp)}</span>
+                                </div>
+                                <div className="text-[11px] text-gray-300">{comment.content}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Comment input - only if signed up */}
+                      {state.playerAccount.isSignedUp && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="text"
+                            value={commentInputs[post.id] || ''}
+                            onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                            placeholder="Add a comment..."
+                            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && commentInputs[post.id]?.trim()) {
+                                addCommentToPost(post.id, commentInputs[post.id].trim());
+                                setCommentInputs({ ...commentInputs, [post.id]: '' });
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              if (commentInputs[post.id]?.trim()) {
+                                addCommentToPost(post.id, commentInputs[post.id].trim());
+                                setCommentInputs({ ...commentInputs, [post.id]: '' });
+                              }
+                            }}
+                            disabled={!commentInputs[post.id]?.trim()}
+                            className="px-2 py-1 bg-blue-600 text-white text-xs rounded disabled:bg-gray-700 disabled:text-gray-500 hover:bg-blue-500 transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -328,48 +387,105 @@ export default function SocialMediaView({ state, setActiveTab, setViewedProfile,
         {/* RECOMMENDATIONS TAB - Followers suggesting things */}
         {state.activeSocialTab === 'recommendations' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {/* Player recommendation input - only if signed up */}
+            {state.playerAccount.isSignedUp && (
+              <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-3 mb-3">
+                <div className="text-xs text-blue-400 font-bold mb-2">⭐ Post a Recommendation</div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={recommendationInput}
+                    onChange={(e) => setRecommendationInput(e.target.value)}
+                    placeholder="Share a recommendation..."
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    maxLength={150}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && recommendationInput.trim()) {
+                        postRecommendation(recommendationInput.trim());
+                        setRecommendationInput('');
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (recommendationInput.trim()) {
+                        postRecommendation(recommendationInput.trim());
+                        setRecommendationInput('');
+                      }
+                    }}
+                    disabled={!recommendationInput.trim()}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded disabled:bg-gray-700 disabled:text-gray-500 hover:bg-blue-500 transition-colors"
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <div className="text-xs text-gray-500 mb-2">💬 Followers suggest</div>
-            {state.followerSuggestions.length === 0 ? (
+            {state.followerSuggestions.length === 0 && state.socialMediaPosts.filter(p => p.isRecommendation).length === 0 ? (
               <div className="text-xs text-gray-500 text-center py-4">
                 No suggestions yet. Keep streaming to get follower suggestions!
               </div>
             ) : (
-              state.followerSuggestions.map((item) => (
-                <div key={item.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
-                      {item.follower[0]}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-blue-400 font-bold">@{item.follower}</div>
-                      <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="text-[10px] text-gray-500">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
+              <>
+                {/* Player recommendations */}
+                {state.socialMediaPosts.filter(p => p.isRecommendation).map((post) => (
+                  <div key={post.id} className="bg-blue-800/30 border border-blue-600/50 rounded-lg p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                        {post.author[0]}
                       </div>
-                      
-                      {/* Response as comment */}
-                      {item.responded && item.response && (
-                        <div className="mt-2 ml-4 border-l-2 border-purple-500 pl-3">
-                          <div className="flex items-start gap-2">
-                            <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-[10px]">
-                              S
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-purple-300 font-bold">@Sarah_J</span>
-                                <span className="text-[10px] text-gray-500">
-                                  {item.responseTimestamp ? `${Math.floor((state.simTime - item.responseTimestamp) / 60)}m ago` : ''}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-300 mt-0.5">{item.response}</div>
-                            </div>
-                          </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-blue-300 font-bold">@{post.author}</span>
+                          <span className="text-[10px] text-gray-500">{formatTime(post.timestamp)}</span>
+                          <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">You</span>
                         </div>
-                      )}
+                        <div className="text-sm text-gray-200 mt-1">{post.content}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+                
+                {/* Follower suggestions */}
+                {state.followerSuggestions.map((item) => (
+                  <div key={item.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                        {item.follower[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs text-blue-400 font-bold">@{item.follower}</div>
+                        <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="text-[10px] text-gray-500">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
+                        </div>
+                        
+                        {/* Response as comment */}
+                        {item.responded && item.response && (
+                          <div className="mt-2 ml-4 border-l-2 border-purple-500 pl-3">
+                            <div className="flex items-start gap-2">
+                              <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-[10px]">
+                                S
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-purple-300 font-bold">@Sarah_J</span>
+                                  <span className="text-[10px] text-gray-500">
+                                    {item.responseTimestamp ? `${Math.floor((state.simTime - item.responseTimestamp) / 60)}m ago` : ''}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-300 mt-0.5">{item.response}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         )}
