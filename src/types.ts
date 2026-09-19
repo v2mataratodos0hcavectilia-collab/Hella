@@ -113,6 +113,49 @@ export interface SimulationState {
   nanobotsActive: boolean;
   playerHeartRateControl: number | null; // null = auto, number = manual BPM
   playerBreathingControl: number | null; // null = auto, number = manual BrPM
+  
+  // Weather & Time System
+  weather: WeatherType;
+  season: SeasonType;
+  timeOfDay: TimeOfDayType;
+  weatherChangeTimer: number;
+  
+  // Relationships
+  friends: Relationship[];
+  family: Relationship[];
+  romanticInterest: Relationship | null;
+  rival: Relationship | null;
+  
+  // Stress & Food
+  stressLevel: number; // 0-100%
+  lastFoodEaten: FoodType | null;
+  lastFoodTime: number;
+  
+  // Training Specialization
+  trainingMethod: TrainingMethod;
+  bladderControlMode: boolean;
+  bladderControlLevel: number; // 0-100%
+  trainingSpecializations: Record<TrainingScenario, number>;
+  
+  // Economic Depth
+  investments: Investment[];
+  debt: number;
+  monthlyExpenses: number;
+  careerLevel: number;
+  lastExpenseTime: number;
+  
+  // Narrative
+  memories: Memory[];
+  personalityTraits: PersonalityTrait[];
+  lifeGoals: LifeGoal[];
+  
+  // Multi-Character
+  otherCharacters: OtherCharacter[];
+  currentVisitors: string[];
+  cameraViewMode: 'her' | 'others';
+  
+  // Custom Scenarios
+  customScenarios: CustomScenario[];
 }
 
 export interface ActiveDrug {
@@ -176,6 +219,86 @@ export interface ChatMessage {
   message: string;
   timestamp: number;
   isFromUser?: boolean;
+}
+
+// Weather & Time Types
+export type WeatherType = 'clear' | 'cloudy' | 'rainy' | 'snowy' | 'stormy' | 'hot' | 'cold';
+export type SeasonType = 'spring' | 'summer' | 'fall' | 'winter';
+export type TimeOfDayType = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night';
+
+// Relationship Types
+export interface Relationship {
+  id: string;
+  name: string;
+  type: 'friend' | 'family' | 'romantic' | 'rival';
+  closeness: number; // 0-100
+  lastInteraction: number;
+  messages: RelationshipMessage[];
+}
+
+export interface RelationshipMessage {
+  id: string;
+  from: string;
+  content: string;
+  timestamp: number;
+  isFromPlayer?: boolean;
+}
+
+// Food Types
+export type FoodType = 'spicy' | 'salty' | 'sweet' | 'healthy' | 'junk' | 'diuretic_food';
+
+// Training Types
+export type TrainingMethod = 'kegels' | 'meditation' | 'cold_exposure' | 'interval' | 'none';
+export type TrainingScenario = 'sitting' | 'standing' | 'walking' | 'running' | 'sleeping' | 'social';
+
+// Economic Types
+export interface Investment {
+  id: string;
+  name: string;
+  amount: number;
+  returnRate: number; // % per day
+  startTime: number;
+  lastPayout: number;
+}
+
+// Narrative Types
+export interface Memory {
+  id: string;
+  event: string;
+  timestamp: number;
+  emotionalImpact: number; // -100 to 100
+  category: 'achievement' | 'embarrassing' | 'happy' | 'sad' | 'stressful';
+}
+
+export type PersonalityTrait = 'patient' | 'anxious' | 'competitive' | 'social' | 'introverted' | 'adventurous';
+
+export interface LifeGoal {
+  id: string;
+  description: string;
+  progress: number; // 0-100
+  completed: boolean;
+  category: 'bladder' | 'social' | 'career' | 'personal';
+}
+
+// Multi-Character Types
+export interface OtherCharacter {
+  id: string;
+  name: string;
+  bladderVolume: number;
+  maxCapacity: number;
+  location: LocationType;
+  aiState: AIState;
+  personality: string;
+  bladderCapacity: number;
+  isVisiting: boolean;
+}
+
+// Custom Scenario Types
+export interface CustomScenario {
+  id: string;
+  name: string;
+  description: string;
+  initialOverrides: Partial<SimulationState>;
 }
 
 export type AIState = 

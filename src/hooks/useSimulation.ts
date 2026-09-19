@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug } from '../types';
+import { SimulationState, FluidType, FLUID_PROPERTIES, WARDROBE_TIMES, WardrobeType, Posture, LocationType, AIState, SocialMediaPost, SocialMediaComment, DrugType, DRUG_PROPERTIES, ActiveDrug, TrainingMethod, WeatherType, FoodType } from '../types';
 import { DONATION_MESSAGES, MEGA_INFLUENCER_NAMES, FOLLOWER_SUGGESTION_TEMPLATES, POST_TEMPLATES } from '../socialContent';
 import { ACHIEVEMENTS } from '../achievements';
 
@@ -120,6 +120,56 @@ const INITIAL_STATE: SimulationState = {
   nanobotsActive: false,
   playerHeartRateControl: null,
   playerBreathingControl: null,
+  
+  // Weather & Time System
+  weather: 'clear',
+  season: 'spring',
+  timeOfDay: 'morning',
+  weatherChangeTimer: 0,
+  
+  // Relationships
+  friends: [],
+  family: [],
+  romanticInterest: null,
+  rival: null,
+  
+  // Stress & Food
+  stressLevel: 0,
+  lastFoodEaten: null,
+  lastFoodTime: 0,
+  
+  // Training Specialization
+  trainingMethod: 'none',
+  bladderControlMode: false,
+  bladderControlLevel: 0,
+  trainingSpecializations: {
+    sitting: 0,
+    standing: 0,
+    walking: 0,
+    running: 0,
+    sleeping: 0,
+    social: 0,
+  },
+  
+  // Economic Depth
+  investments: [],
+  debt: 0,
+  monthlyExpenses: 500,
+  careerLevel: 1,
+  lastExpenseTime: 0,
+  
+  // Narrative
+  memories: [],
+  personalityTraits: [],
+  lifeGoals: [],
+  
+  // Multi-Character
+  otherCharacters: [],
+  currentVisitors: [],
+  cameraViewMode: 'her',
+  
+  // Custom Scenarios
+  customScenarios: [],
 };
 
 interface PlayerOverrides {
@@ -424,6 +474,27 @@ export function useSimulation() {
         const props = FLUID_PROPERTIES[drink];
         newState.diureticMultiplier = props.fillMultiplier;
       }
+      
+      // Random food events
+      if (Math.random() < 0.0002 * dt * s.timeSpeed) {
+        const foods: Array<'spicy' | 'salty' | 'sweet' | 'healthy' | 'junk' | 'diuretic_food'> = ['spicy', 'salty', 'sweet', 'healthy', 'junk', 'diuretic_food'];
+        newState.lastFoodEaten = foods[Math.floor(Math.random() * foods.length)];
+        newState.lastFoodTime = s.simTime;
+      }
+      
+      // Stress level changes based on situation
+      if (s.urgeSignal > 80) {
+        newState.stressLevel = Math.min(100, newState.stressLevel + dt * 0.05);
+      } else if (s.urgeSignal < 30 && s.bladderVolume < s.maxCapacity * 0.3) {
+        newState.stressLevel = Math.max(0, newState.stressLevel - dt * 0.03);
+      }
+      
+      // Weather affects stress
+      if (newState.weather === 'stormy') {
+        newState.stressLevel = Math.min(100, newState.stressLevel + dt * 0.02);
+      } else if (newState.weather === 'clear' && newState.timeOfDay === 'morning') {
+        newState.stressLevel = Math.max(0, newState.stressLevel - dt * 0.02);
+      }
     }
 
     return newState;
@@ -447,6 +518,36 @@ export function useSimulation() {
       if (newState.simTime >= 24 * 3600) {
         newState.simTime -= 24 * 3600;
         newState.dayNumber += 1;
+        
+        // Season changes every 30 days
+        if (newState.dayNumber % 30 === 0) {
+          const seasons: Array<'spring' | 'summer' | 'fall' | 'winter'> = ['spring', 'summer', 'fall', 'winter'];
+          const currentSeasonIndex = seasons.indexOf(newState.season);
+          newState.season = seasons[(currentSeasonIndex + 1) % 4];
+        }
+      }
+      
+      // Time of day update
+      const hour = Math.floor(newState.simTime / 3600) % 24;
+      if (hour >= 5 && hour < 7) newState.timeOfDay = 'dawn';
+      else if (hour >= 7 && hour < 12) newState.timeOfDay = 'morning';
+      else if (hour >= 12 && hour < 17) newState.timeOfDay = 'afternoon';
+      else if (hour >= 17 && hour < 20) newState.timeOfDay = 'evening';
+      else newState.timeOfDay = 'night';
+      
+      // Weather changes (every 2-6 hours sim time)
+      newState.weatherChangeTimer -= simDt;
+      if (newState.weatherChangeTimer <= 0) {
+        const weathers: Array<'clear' | 'cloudy' | 'rainy' | 'snowy' | 'stormy' | 'hot' | 'cold'> = ['clear', 'cloudy', 'rainy', 'snowy', 'stormy', 'hot', 'cold'];
+        // Season affects weather likelihood
+        if (newState.season === 'winter') {
+          newState.weather = Math.random() < 0.4 ? 'snowy' : Math.random() < 0.3 ? 'cold' : weathers[Math.floor(Math.random() * 3)];
+        } else if (newState.season === 'summer') {
+          newState.weather = Math.random() < 0.3 ? 'hot' : Math.random() < 0.2 ? 'stormy' : weathers[Math.floor(Math.random() * 3)];
+        } else {
+          newState.weather = weathers[Math.floor(Math.random() * weathers.length)];
+        }
+        newState.weatherChangeTimer = (2 + Math.random() * 4) * 3600; // 2-6 hours
       }
 
       // Process pending drink (gradual filling)
@@ -475,6 +576,42 @@ export function useSimulation() {
         effectiveFillRate *= 1.3;
       } else if (newState.temperature > 85) {
         effectiveFillRate *= 0.7;
+      }
+      
+      // Weather effects on fill rate
+      if (newState.weather === 'cold' || newState.weather === 'snowy') {
+        effectiveFillRate *= 1.2; // Cold weather increases fill rate
+      } else if (newState.weather === 'hot') {
+        effectiveFillRate *= 0.8; // Hot weather decreases fill rate (sweating)
+      } else if (newState.weather === 'rainy' || newState.weather === 'stormy') {
+        effectiveFillRate *= 1.1; // Rain increases urgency slightly
+      }
+      
+      // Stress effects on fill rate
+      if (newState.stressLevel > 70) {
+        effectiveFillRate *= 1.3; // High stress increases fill rate
+      } else if (newState.stressLevel < 30) {
+        effectiveFillRate *= 0.9; // Low stress decreases fill rate
+      }
+      
+      // Food effects (lasts 2 hours after eating)
+      if (newState.lastFoodEaten && newState.simTime - newState.lastFoodTime < 7200) {
+        if (newState.lastFoodEaten === 'spicy') {
+          effectiveFillRate *= 1.2; // Spicy food increases urgency
+        } else if (newState.lastFoodEaten === 'diuretic_food') {
+          effectiveFillRate *= 1.4; // Diuretic foods increase fill rate significantly
+        } else if (newState.lastFoodEaten === 'healthy') {
+          effectiveFillRate *= 0.9; // Healthy food slightly decreases fill rate
+        }
+      }
+      
+      // Activity-based fill rate (posture affects it)
+      if (newState.posture === 'running') {
+        effectiveFillRate *= 1.3; // Running increases fill rate
+      } else if (newState.posture === 'walking') {
+        effectiveFillRate *= 1.1; // Walking slightly increases fill rate
+      } else if (newState.isSleeping) {
+        effectiveFillRate *= 0.6; // Sleeping decreases fill rate significantly
       }
 
       // Fill bladder (from kidneys, not drinks)
@@ -1233,6 +1370,35 @@ export function useSimulation() {
     });
   }, []);
 
+  // New feature control functions
+  const setTrainingMethod = useCallback((method: TrainingMethod) => {
+    setState(prev => ({ ...prev, trainingMethod: method }));
+  }, []);
+
+  const toggleBladderControlMode = useCallback(() => {
+    setState(prev => ({ ...prev, bladderControlMode: !prev.bladderControlMode }));
+  }, []);
+
+  const setWeather = useCallback((weather: WeatherType) => {
+    setState(prev => ({ ...prev, weather }));
+  }, []);
+
+  const setStressLevel = useCallback((level: number) => {
+    setState(prev => ({ ...prev, stressLevel: Math.max(0, Math.min(100, level)) }));
+  }, []);
+
+  const eatFood = useCallback((food: FoodType) => {
+    setState(prev => ({
+      ...prev,
+      lastFoodEaten: food,
+      lastFoodTime: prev.simTime,
+    }));
+  }, []);
+
+  const setCameraViewMode = useCallback((mode: 'her' | 'others') => {
+    setState(prev => ({ ...prev, cameraViewMode: mode }));
+  }, []);
+
   return {
     state,
     overrides,
@@ -1263,5 +1429,11 @@ export function useSimulation() {
     setBreathingControl,
     toggleNanobots,
     setViewedProfile,
+    setTrainingMethod,
+    toggleBladderControlMode,
+    setWeather,
+    setStressLevel,
+    eatFood,
+    setCameraViewMode,
   };
 }

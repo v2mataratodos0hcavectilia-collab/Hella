@@ -11,6 +11,9 @@ import SocialMediaView from './components/SocialMediaView';
 import HeartView from './components/HeartView';
 import AchievementsPanel from './components/AchievementsPanel';
 import PlayerAccountPanel from './components/PlayerAccountPanel';
+import WeatherPanel from './components/WeatherPanel';
+import RelationshipsPanel from './components/RelationshipsPanel';
+import TrainingPanel from './components/TrainingPanel';
 import { Scenario } from './types';
 
 function App() {
@@ -44,6 +47,12 @@ function App() {
     setBreathingControl,
     toggleNanobots,
     setViewedProfile,
+    setTrainingMethod,
+    toggleBladderControlMode,
+    setWeather,
+    setStressLevel,
+    eatFood,
+    setCameraViewMode,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -179,6 +188,17 @@ function App() {
           {/* AI Log */}
           <div className="px-1 pb-1">
             <AILog state={state} />
+          </div>
+
+          {/* New Feature Panels */}
+          <div className="px-1 pb-1 grid grid-cols-3 gap-1">
+            <WeatherPanel state={state} />
+            <RelationshipsPanel state={state} />
+            <TrainingPanel 
+              state={state} 
+              setTrainingMethod={setTrainingMethod}
+              toggleBladderControlMode={toggleBladderControlMode}
+            />
           </div>
 
           {/* Stats Bar */}
