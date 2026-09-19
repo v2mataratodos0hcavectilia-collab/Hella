@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSimulation } from './hooks/useSimulation';
 import { useAudio } from './hooks/useAudio';
 import MicroView from './components/MicroView';
