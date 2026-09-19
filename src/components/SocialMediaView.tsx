@@ -3,10 +3,11 @@ import { SimulationState, DRUG_PROPERTIES, DrugType } from '../types';
 
 interface SocialMediaViewProps {
   state: SimulationState;
-  setActiveTab: (tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal') => void;
+  setActiveTab: (tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal' | 'chat') => void;
+  setViewedProfile: (profile: string | null) => void;
 }
 
-export default function SocialMediaView({ state, setActiveTab }: SocialMediaViewProps) {
+export default function SocialMediaView({ state, setActiveTab, setViewedProfile }: SocialMediaViewProps) {
   const [liveChat, setLiveChat] = useState<Array<{ user: string; message: string; timestamp: number }>>([]);
 
   const formatTime = (simTime: number) => {
@@ -74,7 +75,7 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
 
       {/* Tab navigation */}
       <div className="flex border-b border-gray-700 bg-gray-900/50">
-        {(['live', 'posts', 'recommendations', 'explore', 'personal'] as const).map(tab => (
+        {(['live', 'posts', 'recommendations', 'explore', 'chat', 'personal'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -88,6 +89,7 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
             {tab === 'posts' && '📝 '}
             {tab === 'recommendations' && '⭐ '}
             {tab === 'explore' && '🔍 '}
+            {tab === 'chat' && '💬 '}
             {tab === 'personal' && '👤 '}
             {tab}
           </button>
@@ -274,10 +276,27 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
                       <div className="text-sm text-gray-200 mt-1">"{item.suggestion}"</div>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="text-[10px] text-gray-500">{Math.floor((state.simTime - item.timestamp) / 60)}m ago</div>
-                        {item.responded && (
-                          <div className="text-[10px] text-green-400">✓ Responded</div>
-                        )}
                       </div>
+                      
+                      {/* Response as comment */}
+                      {item.responded && item.response && (
+                        <div className="mt-2 ml-4 border-l-2 border-purple-500 pl-3">
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-[10px]">
+                              S
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-purple-300 font-bold">@Sarah_J</span>
+                                <span className="text-[10px] text-gray-500">
+                                  {item.responseTimestamp ? `${Math.floor((state.simTime - item.responseTimestamp) / 60)}m ago` : ''}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-300 mt-0.5">{item.response}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -289,26 +308,107 @@ export default function SocialMediaView({ state, setActiveTab }: SocialMediaView
         {/* EXPLORE TAB */}
         {state.activeSocialTab === 'explore' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            <div className="text-xs text-gray-500 mb-2">🔍 Discover users</div>
-            {exploreUsers.map((user, i) => (
-              <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
-                    {user.name[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">@{user.name}</span>
-                      {user.verified && <span className="text-blue-400 text-xs">✓</span>}
+            {state.viewedProfile ? (
+              // Profile View
+              <div>
+                <button
+                  onClick={() => setViewedProfile(null)}
+                  className="mb-3 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded"
+                >
+                  ← Back to Explore
+                </button>
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-2xl">
+                      {state.viewedProfile[0]}
                     </div>
-                    <div className="text-xs text-gray-400">{user.followers} followers • {user.posts} posts</div>
+                    <div>
+                      <div className="text-lg font-bold text-white">@{state.viewedProfile}</div>
+                      <div className="text-xs text-gray-400">
+                        {exploreUsers.find(u => u.name === state.viewedProfile)?.followers || '0'} followers • {' '}
+                        {exploreUsers.find(u => u.name === state.viewedProfile)?.posts || '0'} posts
+                      </div>
+                    </div>
                   </div>
-                  <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded">
-                    View
-                  </button>
+                  <div className="border-t border-gray-700 pt-3">
+                    <div className="text-xs text-gray-500 mb-2">Recent Posts</div>
+                    {state.socialMediaPosts.filter(p => p.author === state.viewedProfile).slice(0, 5).map(post => (
+                      <div key={post.id} className="bg-gray-900/50 rounded p-2 mb-2">
+                        <div className="text-xs text-gray-300">{post.content}</div>
+                        <div className="text-[10px] text-gray-500 mt-1">
+                          ❤️ {post.likes} • 💬 {post.comments} • {formatTime(post.timestamp)}
+                        </div>
+                      </div>
+                    ))}
+                    {state.socialMediaPosts.filter(p => p.author === state.viewedProfile).length === 0 && (
+                      <div className="text-xs text-gray-500 text-center py-4">No posts yet</div>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+            ) : (
+              // Explore List
+              <>
+                <div className="text-xs text-gray-500 mb-2">🔍 Discover users</div>
+                {exploreUsers.map((user, i) => (
+                  <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
+                        {user.name[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">@{user.name}</span>
+                          {user.verified && <span className="text-blue-400 text-xs">✓</span>}
+                        </div>
+                        <div className="text-xs text-gray-400">{user.followers} followers • {user.posts} posts</div>
+                      </div>
+                      <button 
+                        onClick={() => setViewedProfile(user.name)}
+                        className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded"
+                      >
+                        View
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* CHAT TAB */}
+        {state.activeSocialTab === 'chat' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="bg-gray-900/80 border-b border-gray-700 px-4 py-2 shrink-0">
+              <div className="text-xs text-gray-400">💬 Group Chat - {state.chatMessages.length} messages</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {state.chatMessages.length === 0 ? (
+                <div className="text-xs text-gray-500 text-center py-4">
+                  No messages yet. Chat will appear here as users talk...
+                </div>
+              ) : (
+                state.chatMessages.map((msg) => (
+                  <div key={msg.id} className="flex items-start gap-2">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] ${
+                      msg.isFromUser ? 'bg-purple-600' : 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                    }`}>
+                      {msg.author[0]}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold ${msg.isFromUser ? 'text-purple-300' : 'text-blue-300'}`}>
+                          @{msg.author}
+                        </span>
+                        <span className="text-[10px] text-gray-500">{formatTime(msg.timestamp)}</span>
+                      </div>
+                      <div className="text-xs text-gray-300 mt-0.5">{msg.message}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>

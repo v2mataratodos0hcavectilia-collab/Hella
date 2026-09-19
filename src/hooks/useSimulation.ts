@@ -52,6 +52,8 @@ const INITIAL_STATE: SimulationState = {
     comments: [],
     following: ['Sarah_J'],
   },
+  chatMessages: [],
+  viewedProfile: null,
   activeDrugs: [],
   drugDoses: {
     caffeine: 0,
@@ -128,19 +130,105 @@ interface PlayerOverrides {
 }
 
 function getSuggestionResponse(suggestion: string): string {
-  const responses = [
-    "Haha good idea! Maybe I'll try that 😄",
-    "Omg that's actually genius! 🤯",
-    "Lol you're right, I should do that!",
-    "Thanks for the suggestion! 💕",
-    "You always have the best ideas!",
-    "Okay okay, I'll think about it 😅",
-    "That's hilarious but maybe not... 😂",
-    "You know me too well! 🙈",
-    "Challenge accepted! 🏆",
-    "Why not? Let's do it! 🎉",
+  // Context-aware responses based on suggestion type
+  const holdingSuggestions = ['hold', 'holding', 'bladder', 'bathroom', 'pee', 'piss', 'urge'];
+  const drinkingSuggestions = ['drink', 'coffee', 'water', 'tea', 'alcohol', 'fluid'];
+  const streamingSuggestions = ['live', 'stream', 'video', 'camera'];
+  const challengeSuggestions = ['challenge', 'try', 'attempt', 'contest'];
+  
+  const isHolding = holdingSuggestions.some(s => suggestion.toLowerCase().includes(s));
+  const isDrinking = drinkingSuggestions.some(s => suggestion.toLowerCase().includes(s));
+  const isStreaming = streamingSuggestions.some(s => suggestion.toLowerCase().includes(s));
+  const isChallenge = challengeSuggestions.some(s => suggestion.toLowerCase().includes(s));
+  
+  // Enthusiastic responses
+  const enthusiastic = [
+    "Omg yes! I'm totally doing this! 🎉",
+    "You're literally the best! Let's go! 💪",
+    "This is exactly what I needed to hear! 🤩",
+    "Challenge accepted! Watch me crush this! 🏆",
+    "You always know just what to say! 😍",
   ];
-  return responses[Math.floor(Math.random() * responses.length)];
+  
+  // Hesitant responses
+  const hesitant = [
+    "Hmm maybe... I'm kinda scared tbh 😅",
+    "That sounds intense... but okay? 🤔",
+    "I don't know if I can handle that... 😬",
+    "You're crazy but I might try it... 😂",
+    "Okay fine but if I regret it I'm blaming you! 😤",
+  ];
+  
+  // Funny responses
+  const funny = [
+    "Lol you're trying to kill me aren't you? 💀",
+    "My bladder already hates me but sure! 😭",
+    "You're evil and I love it 😈",
+    "This is either genius or insane... probably both 🤪",
+    "Why do I trust you so much? 😂",
+  ];
+  
+  // Grateful responses
+  const grateful = [
+    "Thank you! You always have the best ideas! 💕",
+    "You're literally a lifesaver! 🙏",
+    "I needed this push! Thanks bestie! ❤️",
+    "You always know what's up! 🌟",
+    "Seriously the best followers ever! 😭💕",
+  ];
+  
+  // Sarcastic responses
+  const sarcastic = [
+    "Oh great, more suffering. Just what I wanted. 🙃",
+    "Because my life isn't hard enough already... 😒",
+    "Sure, let me just add that to my list of problems 📝",
+    "Wow thanks for the trauma 😐",
+    "You really care about my wellbeing don't you 🙄",
+  ];
+  
+  // Holding-specific responses
+  const holdingResponses = [
+    "My bladder is already screaming but okay! 😫",
+    "I'm literally doing the potty dance right now 💃",
+    "Crossing my legs as we speak! 🦵",
+    "The urge is REAL but I got this! 💪",
+    "Send prayers and maybe a heating pad 🙏",
+  ];
+  
+  // Drinking-specific responses
+  const drinkingResponses = [
+    "Already pouring my 5th cup! ☕☕☕☕☕",
+    "My bladder is going to hate me but whatever! 🥤",
+    "Hydration station activated! 💧",
+    "This is either genius or a terrible idea... doing it anyway! 🤪",
+    "Liquid courage incoming! 🍺",
+  ];
+  
+  // Streaming-specific responses
+  const streamingResponses = [
+    "Camera's ready! Let's do this! 📹",
+    "My followers are going to lose it! 😂",
+    "Time to show everyone the struggle! 🎥",
+    "Going live in 3... 2... 1... 🔴",
+    "This is going to be epic! 🌟",
+  ];
+  
+  // Select response category based on suggestion type
+  let responsePool;
+  if (isHolding) {
+    responsePool = [...holdingResponses, ...enthusiastic.slice(0, 2), ...funny.slice(0, 2)];
+  } else if (isDrinking) {
+    responsePool = [...drinkingResponses, ...enthusiastic.slice(0, 2), ...sarcastic.slice(0, 2)];
+  } else if (isStreaming) {
+    responsePool = [...streamingResponses, ...enthusiastic.slice(0, 3)];
+  } else if (isChallenge) {
+    responsePool = [...enthusiastic, ...hesitant.slice(0, 2), ...funny.slice(0, 2)];
+  } else {
+    // Mix of all categories
+    responsePool = [...enthusiastic, ...hesitant, ...funny, ...grateful, ...sarcastic];
+  }
+  
+  return responsePool[Math.floor(Math.random() * responsePool.length)];
 }
 
 function generateSocialMediaPost(state: SimulationState): SocialMediaPost {
@@ -591,11 +679,11 @@ export function useSimulation() {
       // Death/pass out mechanics
       // Pass out if heart rate too high or too low, or breathing too low
       if (!newState.isPassedOut && !newState.isDead) {
-        if (newState.heartRate > 200 || newState.heartRate < 30) {
+        if (newState.heartRate > 250 || (newState.heartRate < 30 && newState.heartRate > 0)) {
           newState.isPassedOut = true;
           newState.passOutTime = newState.simTime;
           newState.consciousnessLevel = 0;
-        } else if (newState.breathingRate < 5) {
+        } else if (newState.breathingRate < 5 && newState.breathingRate > 0) {
           newState.isPassedOut = true;
           newState.passOutTime = newState.simTime;
           newState.consciousnessLevel = 0;
@@ -604,9 +692,15 @@ export function useSimulation() {
 
       // Die if conditions are extreme
       if (!newState.isDead) {
-        if (newState.heartRate > 250 || newState.heartRate < 20) {
+        if (newState.heartRate === 0) {
           newState.isDead = true;
-          newState.deathCause = 'Cardiac arrest';
+          newState.deathCause = 'Cardiac arrest (0 BPM)';
+        } else if (newState.breathingRate === 0) {
+          newState.isDead = true;
+          newState.deathCause = 'Respiratory arrest (0 BrPM)';
+        } else if (newState.heartRate > 300 || newState.heartRate < 20) {
+          newState.isDead = true;
+          newState.deathCause = newState.heartRate > 300 ? 'Ventricular fibrillation' : 'Cardiac arrest';
         } else if (newState.breathingRate < 3) {
           newState.isDead = true;
           newState.deathCause = 'Respiratory failure';
@@ -734,19 +828,14 @@ export function useSimulation() {
         // AI responds to recommendations (30% chance per suggestion per minute)
         newState.followerSuggestions = newState.followerSuggestions.map(suggestion => {
           if (!suggestion.responded && Math.random() < 0.005 * simDt * newState.timeSpeed) {
-            // Create a response post
-            const responsePost: SocialMediaPost = {
-              id: `response_${Date.now()}_${Math.random()}`,
-              author: 'Sarah_J',
-              content: `@${suggestion.follower} ${getSuggestionResponse(suggestion.suggestion)}`,
-              timestamp: newState.simTime,
-              likes: Math.floor(Math.random() * 20),
-              comments: Math.floor(Math.random() * 5),
-              isFromUser: true,
-              commentList: [],
+            // Add response as a comment on the suggestion
+            const response = getSuggestionResponse(suggestion.suggestion);
+            return { 
+              ...suggestion, 
+              responded: true,
+              response: response,
+              responseTimestamp: newState.simTime,
             };
-            newState.socialMediaPosts = [responsePost, ...newState.socialMediaPosts].slice(0, 50);
-            return { ...suggestion, responded: true };
           }
           return suggestion;
         });
@@ -764,6 +853,37 @@ export function useSimulation() {
           newState.money += income;
           newState.totalEarned += income;
           newState.lastIncomeTime = newState.simTime;
+        }
+
+        // Generate chat messages between AI users
+        if (Math.random() < 0.001 * simDt * newState.timeSpeed && newState.chatMessages.length < 100) {
+          const chatUsers = ['BladderFan99', 'UrgentVibes', 'HoldingQueen', 'PeePeePooPoo', 'FullBladderClub', 'DesperateDan', 'CoffeeLover22', 'NightOwl_'];
+          const chatMessages = [
+            "Anyone else struggling to hold it rn? 😩",
+            "Just hit 80% capacity and feeling great!",
+            "Who's going live later?",
+            "This holding challenge is intense!",
+            "My bladder is screaming but I'm not giving up 💪",
+            "Anyone want to start a holding contest?",
+            "Just drank 3 coffees... send help ☕☕☕",
+            "The urge is real today guys",
+            "Crossing legs is my cardio 🦵",
+            "Living my best (full) life rn 😌",
+            "Can't believe how long I've been holding",
+            "Anyone else doing the potty dance? 💃",
+            "Bladder goals right here 🏆",
+            "This is either genius or insane 🤪",
+            "Send prayers and maybe a heating pad 🙏",
+          ];
+          
+          const chatMessage = {
+            id: `chat_${Date.now()}_${Math.random()}`,
+            author: chatUsers[Math.floor(Math.random() * chatUsers.length)],
+            message: chatMessages[Math.floor(Math.random() * chatMessages.length)],
+            timestamp: newState.simTime,
+            isFromUser: false,
+          };
+          newState.chatMessages = [...newState.chatMessages, chatMessage].slice(-100);
         }
       }
 
@@ -976,8 +1096,44 @@ export function useSimulation() {
     setState(prev => ({ ...prev, playerBreathingControl: brpm }));
   }, []);
 
-  const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal') => {
+  const toggleNanobots = useCallback(() => {
+    setState(prev => {
+      if (prev.nanobotsActive) {
+        // Turn off nanobots
+        return {
+          ...prev,
+          nanobotsActive: false,
+          playerHeartRateControl: null,
+          playerBreathingControl: null,
+          activeDrugs: prev.activeDrugs.filter(d => d.type !== 'nanobots'),
+        };
+      } else {
+        // Turn on nanobots
+        const newDrug: ActiveDrug = {
+          type: 'nanobots',
+          startTime: prev.simTime,
+          duration: Infinity,
+          dose: (prev.drugDoses.nanobots || 0) + 1,
+        };
+        return {
+          ...prev,
+          nanobotsActive: true,
+          activeDrugs: [...prev.activeDrugs, newDrug],
+          drugDoses: {
+            ...prev.drugDoses,
+            nanobots: (prev.drugDoses.nanobots || 0) + 1,
+          },
+        };
+      }
+    });
+  }, []);
+
+  const setActiveSocialTab = useCallback((tab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal' | 'chat') => {
     setState(prev => ({ ...prev, activeSocialTab: tab }));
+  }, []);
+
+  const setViewedProfile = useCallback((profile: string | null) => {
+    setState(prev => ({ ...prev, viewedProfile: profile }));
   }, []);
 
   const playerPost = useCallback((content: string) => {
@@ -1064,5 +1220,7 @@ export function useSimulation() {
     playerComment,
     setHeartRateControl,
     setBreathingControl,
+    toggleNanobots,
+    setViewedProfile,
   };
 }

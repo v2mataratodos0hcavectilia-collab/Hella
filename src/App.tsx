@@ -42,6 +42,8 @@ function App() {
     playerComment,
     setHeartRateControl,
     setBreathingControl,
+    toggleNanobots,
+    setViewedProfile,
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
@@ -161,7 +163,7 @@ function App() {
               </div>
             ) : activeView === 'social' ? (
               <div className="flex-1 p-1">
-                <SocialMediaView state={state} setActiveTab={setActiveSocialTab} />
+                <SocialMediaView state={state} setActiveTab={setActiveSocialTab} setViewedProfile={setViewedProfile} />
               </div>
             ) : activeView === 'heart' ? (
               <div className="flex-1 p-1">
@@ -219,6 +221,7 @@ function App() {
             toggleFullBladderPreference={toggleFullBladderPreference}
             setHeartRateControl={setHeartRateControl}
             setBreathingControl={setBreathingControl}
+            toggleNanobots={toggleNanobots}
           />
         </div>
       </div>

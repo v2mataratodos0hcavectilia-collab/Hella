@@ -67,8 +67,10 @@ export interface SimulationState {
   isLiveStreaming: boolean;
   liveViewerCount: number;
   liveStartTime: number;
-  activeSocialTab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal';
+  activeSocialTab: 'live' | 'posts' | 'recommendations' | 'explore' | 'personal' | 'chat';
   playerAccount: PlayerAccount;
+  chatMessages: ChatMessage[];
+  viewedProfile: string | null;
   
   // Drugs
   activeDrugs: ActiveDrug[];
@@ -153,6 +155,8 @@ export interface FollowerSuggestion {
   suggestion: string;
   timestamp: number;
   responded?: boolean;
+  response?: string;
+  responseTimestamp?: number;
 }
 
 export interface Donation {
@@ -162,6 +166,14 @@ export interface Donation {
   message: string;
   timestamp: number;
   isMegaInfluencer?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  author: string;
+  message: string;
+  timestamp: number;
+  isFromUser?: boolean;
 }
 
 export type AIState = 
@@ -652,8 +664,8 @@ export const DRUG_PROPERTIES: Record<DrugType, DrugEffect> = {
     addictive: false,
     overdoseRisk: false,
     overdoseThreshold: 999,
-    duration: 7200,
-    description: 'Experimental nanotechnology. Grants player full control over heart rate and breathing.',
+    duration: Infinity,
+    description: 'Experimental nanotechnology. Grants player full control over heart rate and breathing. Lasts until manually turned off.',
   },
 };
 

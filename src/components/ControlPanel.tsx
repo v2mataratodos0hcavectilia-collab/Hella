@@ -34,6 +34,7 @@ interface ControlPanelProps {
   toggleFullBladderPreference: () => void;
   setHeartRateControl: (bpm: number | null) => void;
   setBreathingControl: (brpm: number | null) => void;
+  toggleNanobots: () => void;
 }
 
 export default function ControlPanel({
@@ -60,6 +61,7 @@ export default function ControlPanel({
   toggleFullBladderPreference,
   setHeartRateControl,
   setBreathingControl,
+  toggleNanobots,
 }: ControlPanelProps) {
   return (
     <div className="h-full overflow-y-auto bg-gray-900/95 border-l border-gray-700 p-3 space-y-4 text-sm font-mono">
@@ -626,19 +628,39 @@ export default function ControlPanel({
       {state.nanobotsActive && (
         <Section title="🤖 NANOBOT CONTROL">
           <div className="space-y-3">
-            <div className="text-[10px] text-cyan-400 bg-cyan-900/20 p-2 rounded">
-              ⚡ Nanobots active - You have direct control over vitals
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] text-cyan-400 bg-cyan-900/20 p-2 rounded flex-1 mr-2">
+                ⚡ Nanobots active - You have direct control over vitals
+              </div>
+              <button
+                onClick={toggleNanobots}
+                className="px-3 py-2 text-xs bg-red-700 hover:bg-red-600 text-white rounded font-bold"
+              >
+                TURN OFF
+              </button>
             </div>
             
             <div>
               <label className="text-xs text-gray-400 block mb-1">
                 Heart Rate: {state.playerHeartRateControl !== null ? `${state.playerHeartRateControl} BPM` : 'Auto'}
+                {state.playerHeartRateControl !== null && (
+                  <span className="ml-2 text-[10px]">
+                    {state.playerHeartRateControl === 0 ? '💀 CARDIAC ARREST' :
+                     state.playerHeartRateControl <= 30 ? '⚠️ Severe Bradycardia' :
+                     state.playerHeartRateControl <= 60 ? '🔵 Bradycardia' :
+                     state.playerHeartRateControl <= 100 ? '✅ Normal' :
+                     state.playerHeartRateControl <= 150 ? '🟡 Tachycardia' :
+                     state.playerHeartRateControl <= 200 ? '🟠 Severe Tachycardia' :
+                     state.playerHeartRateControl <= 300 ? '🔴 Extreme Tachycardia' :
+                     '💀 CRITICAL'}
+                  </span>
+                )}
               </label>
               <div className="flex gap-2">
                 <input
                   type="range"
-                  min="30"
-                  max="250"
+                  min="0"
+                  max="400"
                   value={state.playerHeartRateControl ?? state.heartRate}
                   onChange={(e) => setHeartRateControl(Number(e.target.value))}
                   className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
@@ -655,12 +677,23 @@ export default function ControlPanel({
             <div>
               <label className="text-xs text-gray-400 block mb-1">
                 Breathing: {state.playerBreathingControl !== null ? `${state.playerBreathingControl} BrPM` : 'Auto'}
+                {state.playerBreathingControl !== null && (
+                  <span className="ml-2 text-[10px]">
+                    {state.playerBreathingControl === 0 ? '💀 RESPIRATORY ARREST' :
+                     state.playerBreathingControl <= 5 ? '⚠️ Severe Depression' :
+                     state.playerBreathingControl <= 10 ? '🔵 Depression' :
+                     state.playerBreathingControl <= 20 ? '✅ Normal' :
+                     state.playerBreathingControl <= 30 ? '🟡 Hyperventilation' :
+                     state.playerBreathingControl <= 40 ? '🟠 Severe Hyperventilation' :
+                     '🔴 Extreme Hyperventilation'}
+                  </span>
+                )}
               </label>
               <div className="flex gap-2">
                 <input
                   type="range"
-                  min="3"
-                  max="40"
+                  min="0"
+                  max="50"
                   value={state.playerBreathingControl ?? state.breathingRate}
                   onChange={(e) => setBreathingControl(Number(e.target.value))}
                   className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
@@ -675,7 +708,7 @@ export default function ControlPanel({
             </div>
 
             <div className="text-[10px] text-gray-500">
-              ⚠️ Warning: Extreme values can cause pass out or death
+              ⚠️ Warning: 0 BPM or 0 BrPM will cause death. Extreme values can cause pass out.
             </div>
           </div>
         </Section>
