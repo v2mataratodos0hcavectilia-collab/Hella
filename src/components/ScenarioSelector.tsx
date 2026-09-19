@@ -96,6 +96,17 @@ function CustomScenarioModal({ onClose, onCreate }: { onClose: () => void; onCre
   const [weather, setWeather] = useState<WeatherType>('clear');
   const [distractionLevel, setDistractionLevel] = useState(30);
   const [canAccessBathroom, setCanAccessBathroom] = useState(true);
+  
+  // Advanced options
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [stressLevel, setStressLevel] = useState(0);
+  const [heartRate, setHeartRate] = useState(72);
+  const [breathingRate, setBreathingRate] = useState(14);
+  const [trainingLevel, setTrainingLevel] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [money, setMoney] = useState(50);
+  const [fullBladderPreference, setFullBladderPreference] = useState(false);
+  const [timeOfDay, setTimeOfDay] = useState<'dawn' | 'morning' | 'afternoon' | 'evening' | 'night'>('morning');
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -113,6 +124,14 @@ function CustomScenarioModal({ onClose, onCreate }: { onClose: () => void; onCre
         weather,
         distractionLevel,
         canAccessBathroom,
+        stressLevel,
+        heartRate,
+        breathingRate,
+        trainingLevel,
+        followerCount,
+        money,
+        fullBladderPreference,
+        timeOfDay,
       },
     };
     
@@ -267,6 +286,148 @@ function CustomScenarioModal({ onClose, onCreate }: { onClose: () => void; onCre
               className="w-full"
             />
           </div>
+
+          {/* Advanced Options Toggle */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded flex items-center justify-between"
+          >
+            <span>Advanced Options</span>
+            <span>{showAdvanced ? '▼' : '▶'}</span>
+          </button>
+
+          {/* Advanced Options */}
+          {showAdvanced && (
+            <div className="space-y-4 border-l-2 border-blue-500/30 pl-4">
+              <div className="text-xs text-blue-400 font-semibold">Vitals & State</div>
+              
+              {/* Stress Level */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Stress Level: {stressLevel}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={stressLevel}
+                  onChange={(e) => setStressLevel(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Heart Rate */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Heart Rate: {heartRate} BPM
+                </label>
+                <input
+                  type="range"
+                  min="40"
+                  max="200"
+                  value={heartRate}
+                  onChange={(e) => setHeartRate(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Breathing Rate */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Breathing Rate: {breathingRate} BrPM
+                </label>
+                <input
+                  type="range"
+                  min="8"
+                  max="40"
+                  value={breathingRate}
+                  onChange={(e) => setBreathingRate(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="text-xs text-blue-400 font-semibold mt-4">Progress & Economy</div>
+
+              {/* Training Level */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Training Level: {trainingLevel}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="90"
+                  value={trainingLevel}
+                  onChange={(e) => setTrainingLevel(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Follower Count */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Follower Count: {followerCount}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="10"
+                  value={followerCount}
+                  onChange={(e) => setFollowerCount(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Money */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  Starting Money: ${money}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="10"
+                  value={money}
+                  onChange={(e) => setMoney(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="text-xs text-blue-400 font-semibold mt-4">Traits & Time</div>
+
+              {/* Full Bladder Preference */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="fullBladderPreference"
+                  checked={fullBladderPreference}
+                  onChange={(e) => setFullBladderPreference(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="fullBladderPreference" className="text-sm text-gray-300">
+                  Full Bladder Preference Trait
+                </label>
+              </div>
+
+              {/* Time of Day */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Time of Day</label>
+                <select
+                  value={timeOfDay}
+                  onChange={(e) => setTimeOfDay(e.target.value as any)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white"
+                >
+                  <option value="dawn">Dawn (5-7 AM)</option>
+                  <option value="morning">Morning (7-12 PM)</option>
+                  <option value="afternoon">Afternoon (12-5 PM)</option>
+                  <option value="evening">Evening (5-8 PM)</option>
+                  <option value="night">Night (8 PM-5 AM)</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Can Access Bathroom */}
           <div className="flex items-center gap-2">

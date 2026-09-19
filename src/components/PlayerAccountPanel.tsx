@@ -15,6 +15,13 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [signupUsername, setSignupUsername] = useState('');
   const [newSuggestion, setNewSuggestion] = useState('');
+  const [signupStep, setSignupStep] = useState(0); // 0: name selection, 1: auto-fill, 2: confirm
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [autoFillData, setAutoFillData] = useState({
+    email: '',
+    bio: '',
+    avatar: '',
+  });
 
   const handlePost = () => {
     if (newPostContent.trim()) {
@@ -52,6 +59,34 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
 
   // Signup screen
   if (!state.playerAccount.isSignedUp) {
+    const presetNames = [
+      { name: 'vec', emoji: '⚡', color: 'from-blue-500 to-cyan-500' },
+      { name: 'hella', emoji: '🔥', color: 'from-orange-500 to-red-500' },
+      { name: 'sheen', emoji: '✨', color: 'from-purple-500 to-pink-500' },
+      { name: 'neko', emoji: '🐱', color: 'from-pink-500 to-rose-500' },
+    ];
+
+    const handlePresetSelect = (preset: string) => {
+      setSelectedPreset(preset);
+      setSignupStep(1);
+      // Auto-generate profile data
+      setAutoFillData({
+        email: `${preset}@bladderchat.com`,
+        bio: `Bladder enthusiast | ${preset} vibes | Here for the community`,
+        avatar: presetNames.find(p => p.name === preset)?.emoji || '👤',
+      });
+    };
+
+    const handleAutoFillConfirm = () => {
+      setSignupStep(2);
+    };
+
+    const handleFinalSignup = () => {
+      if (selectedPreset) {
+        startSignup(selectedPreset);
+      }
+    };
+
     return (
       <div className="bg-gray-900 border-t border-gray-700 p-6">
         <div className="max-w-md mx-auto">
@@ -77,27 +112,108 @@ export default function PlayerAccountPanel({ state, onPost, onComment, onExit, s
                 {state.playerAccount.signupProgress >= 75 && <div>✓ Finalizing setup...</div>}
               </div>
             </div>
-          ) : (
+          ) : signupStep === 0 ? (
+            // Step 1: Choose preset name
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
-                <input
-                  type="text"
-                  value={signupUsername}
-                  onChange={(e) => setSignupUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                  maxLength={20}
-                />
-                <div className="text-xs text-gray-500 mt-1">{signupUsername.length} / 20 characters</div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-300 mb-4">Choose your username:</div>
               </div>
-              <button
-                onClick={handleSignup}
-                disabled={!signupUsername.trim()}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold disabled:bg-gray-700 disabled:text-gray-500 hover:bg-blue-500 transition-colors"
-              >
-                Sign Up (20 seconds)
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                {presetNames.map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset.name)}
+                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                      selectedPreset === preset.name
+                        ? 'border-blue-500 bg-blue-500/20'
+                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-3xl mb-2">{preset.emoji}</div>
+                    <div className={`text-lg font-bold bg-gradient-to-r ${preset.color} bg-clip-text text-transparent`}>
+                      {preset.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="text-xs text-gray-500 text-center">
+                Select a preset name to continue
+              </div>
+            </div>
+          ) : signupStep === 1 ? (
+            // Step 2: Auto-fill profile
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-300 mb-4">Profile auto-generated:</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Username</label>
+                  <div className="text-white font-bold text-lg">{selectedPreset}</div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Email</label>
+                  <div className="text-gray-300">{autoFillData.email}</div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Avatar</label>
+                  <div className="text-3xl">{autoFillData.avatar}</div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Bio</label>
+                  <div className="text-gray-300 text-sm">{autoFillData.bio}</div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSignupStep(0)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleAutoFillConfirm}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Step 3: Final confirmation
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-300 mb-4">Confirm your account:</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="text-4xl">{autoFillData.avatar}</div>
+                  <div>
+                    <div className="text-white font-bold text-xl">{selectedPreset}</div>
+                    <div className="text-gray-400 text-sm">{autoFillData.email}</div>
+                  </div>
+                </div>
+                <div className="text-gray-300 text-sm border-t border-gray-700 pt-3">
+                  {autoFillData.bio}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSignupStep(1)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleFinalSignup}
+                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-500 transition-colors"
+                >
+                  Create Account
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 text-center">
+                Account setup will take 20 seconds
+              </div>
             </div>
           )}
         </div>

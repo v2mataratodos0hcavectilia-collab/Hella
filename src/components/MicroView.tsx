@@ -63,21 +63,38 @@ function SimpleOrbitControls() {
   return null;
 }
 
-function BladderMesh({ state }: { state: SimulationState }) {
+function BladderMesh({ state, onBladderTouch }: { state: SimulationState; onBladderTouch?: () => void }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const wallRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.MeshStandardMaterial>(null);
   const wallMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const [isTouched, setIsTouched] = useState(false);
+  const touchTimeRef = useRef(0);
 
   const fillRatio = Math.min(1.2, state.bladderVolume / state.maxCapacity);
   const pressureNorm = state.bladderPressure / 120;
+
+  const handlePointerDown = () => {
+    setIsTouched(true);
+    touchTimeRef.current = Date.now();
+    if (onBladderTouch) {
+      onBladderTouch();
+    }
+  };
+
+  const handlePointerUp = () => {
+    setIsTouched(false);
+  };
 
   useFrame(() => {
     if (meshRef.current) {
       const scale = 0.5 + fillRatio * 0.8;
       meshRef.current.scale.setScalar(scale);
-      const pulse = Math.sin(Date.now() * 0.003 * (1 + pressureNorm * 2)) * 0.02 * pressureNorm;
-      meshRef.current.scale.multiplyScalar(1 + pulse);
+      
+      // Add extra pulse when touched
+      const basePulse = Math.sin(Date.now() * 0.003 * (1 + pressureNorm * 2)) * 0.02 * pressureNorm;
+      const touchPulse = isTouched ? Math.sin((Date.now() - touchTimeRef.current) * 0.02) * 0.05 : 0;
+      meshRef.current.scale.multiplyScalar(1 + basePulse + touchPulse);
     }
     if (wallRef.current) {
       const wallScale = 0.55 + fillRatio * 0.85;
@@ -90,6 +107,16 @@ function BladderMesh({ state }: { state: SimulationState }) {
         matRef.current.color.setRGB(0.9, 0.8, 0.2);
       } else {
         matRef.current.color.setRGB(0.9, 0.2, 0.1);
+      }
+      
+      // Brighten when touched
+      if (isTouched) {
+        const currentColor = matRef.current.color;
+        matRef.current.emissive = new THREE.Color(0.3, 0.3, 0.3);
+        matRef.current.emissiveIntensity = 0.5;
+      } else {
+        matRef.current.emissive = new THREE.Color(0, 0, 0);
+        matRef.current.emissiveIntensity = 0;
       }
     }
     if (wallMatRef.current) {
@@ -105,7 +132,7 @@ function BladderMesh({ state }: { state: SimulationState }) {
 
   return (
     <group position={[0, 0.2, 0]}>
-      <mesh ref={wallRef}>
+      <mesh ref={wallRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshStandardMaterial
           ref={wallMatRef}
@@ -117,7 +144,7 @@ function BladderMesh({ state }: { state: SimulationState }) {
           side={THREE.DoubleSide}
         />
       </mesh>
-      <mesh ref={meshRef}>
+      <mesh ref={meshRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshStandardMaterial
           ref={matRef}
@@ -415,7 +442,7 @@ function PressureOverlay({ state }: { state: SimulationState }) {
   );
 }
 
-function Scene({ state }: { state: SimulationState }) {
+function Scene({ state, onBladderTouch }: { state: SimulationState; onBladderTouch?: () => void }) {
   return (
     <>
       <ambientLight intensity={0.4} />
@@ -429,7 +456,7 @@ function Scene({ state }: { state: SimulationState }) {
       <KidneyConnectors />
       <BloodVessels />
       <NerveSignals state={state} />
-      <BladderMesh state={state} />
+      <BladderMesh state={state} onBladderTouch={onBladderTouch} />
       <UreterDrip state={state} />
       <Urethra state={state} />
       <PressureOverlay state={state} />
@@ -441,11 +468,19 @@ export default function MicroView({ state }: { state: SimulationState }) {
   const pressureNorm = state.bladderPressure / 120;
   const fillPercent = (state.bladderVolume / state.maxCapacity) * 100;
   const overlayColor = pressureNorm < 0.33 ? 'rgba(0,100,255,0.08)' : pressureNorm < 0.66 ? 'rgba(255,170,0,0.1)' : 'rgba(255,0,0,0.12)';
+  const [touchCount, setTouchCount] = useState(0);
+  const [showTouchMessage, setShowTouchMessage] = useState(false);
+
+  const handleBladderTouch = () => {
+    setTouchCount(prev => prev + 1);
+    setShowTouchMessage(true);
+    setTimeout(() => setShowTouchMessage(false), 2000);
+  };
 
   return (
     <div className="relative w-full h-full bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 rounded-lg overflow-hidden border border-gray-800">
       <Canvas camera={{ position: [0, 0.3, 4], fov: 50 }}>
-        <Scene state={state} />
+        <Scene state={state} onBladderTouch={handleBladderTouch} />
       </Canvas>
       
       <div 
@@ -480,6 +515,20 @@ export default function MicroView({ state }: { state: SimulationState }) {
 
       {pressureNorm > 0.9 && (
         <div className="absolute inset-0 pointer-events-none border-2 border-red-500/30 rounded-lg animate-pulse" />
+      )}
+
+      {/* Touch interaction message */}
+      {showTouchMessage && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-mono text-cyan-400 bg-black/80 px-4 py-2 rounded-lg pointer-events-none animate-pulse">
+          👆 Bladder touched! ({touchCount}x)
+        </div>
+      )}
+
+      {/* Touch counter */}
+      {touchCount > 0 && (
+        <div className="absolute top-12 left-2 text-xs font-mono text-cyan-400 bg-black/60 px-2 py-1 rounded">
+          👆 Touches: {touchCount}
+        </div>
       )}
     </div>
   );

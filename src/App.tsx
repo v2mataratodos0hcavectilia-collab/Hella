@@ -9,11 +9,14 @@ import ScenarioSelector from './components/ScenarioSelector';
 import AILog from './components/AILog';
 import SocialMediaView from './components/SocialMediaView';
 import HeartView from './components/HeartView';
+import LungsView from './components/LungsView';
+import StomachView from './components/StomachView';
 import AchievementsPanel from './components/AchievementsPanel';
 import PlayerAccountPanel from './components/PlayerAccountPanel';
 import WeatherPanel from './components/WeatherPanel';
 import RelationshipsPanel from './components/RelationshipsPanel';
 import TrainingPanel from './components/TrainingPanel';
+import MoodRing from './components/MoodRing';
 import { Scenario } from './types';
 
 function CollapsibleBottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -81,7 +84,7 @@ function App() {
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'achievements'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
@@ -154,6 +157,18 @@ function App() {
               ❤️ Heart
             </button>
             <button
+              onClick={() => setActiveView('lungs')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'lungs' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🫁 Lungs
+            </button>
+            <button
+              onClick={() => setActiveView('stomach')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'stomach' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🍽️ Stomach
+            </button>
+            <button
               onClick={() => setActiveView('achievements')}
               className={`px-3 py-1 text-xs font-mono ${activeView === 'achievements' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
             >
@@ -209,6 +224,14 @@ function App() {
               <div className="flex-1 p-1">
                 <HeartView state={state} />
               </div>
+            ) : activeView === 'lungs' ? (
+              <div className="flex-1 p-1">
+                <LungsView state={state} />
+              </div>
+            ) : activeView === 'stomach' ? (
+              <div className="flex-1 p-1">
+                <StomachView state={state} />
+              </div>
             ) : (
               <div className="flex-1 p-1">
                 <AchievementsPanel state={state} />
@@ -222,8 +245,8 @@ function App() {
           </div>
 
           {/* New Feature Panels - Collapsible */}
-          <CollapsibleBottomPanel title="🌍 Environment & Relationships & Training">
-            <div className="grid grid-cols-3 gap-1">
+          <CollapsibleBottomPanel title="🌍 Environment & Relationships & Training & Mood">
+            <div className="grid grid-cols-4 gap-1">
               <WeatherPanel state={state} />
               <RelationshipsPanel state={state} />
               <TrainingPanel 
@@ -231,6 +254,7 @@ function App() {
                 setTrainingMethod={setTrainingMethod}
                 toggleBladderControlMode={toggleBladderControlMode}
               />
+              <MoodRing state={state} />
             </div>
           </CollapsibleBottomPanel>
 

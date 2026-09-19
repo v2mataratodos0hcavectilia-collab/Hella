@@ -9,6 +9,7 @@ function AnatomicalHeart({ heartRate, urgencyFactor }: { heartRate: number; urge
   const ventricleRightRef = useRef<THREE.Mesh>(null);
   const atriumLeftRef = useRef<THREE.Mesh>(null);
   const atriumRightRef = useRef<THREE.Mesh>(null);
+  const aortaRef = useRef<THREE.Mesh>(null);
 
   useFrame(() => {
     if (heartRef.current) {
@@ -17,113 +18,237 @@ function AnatomicalHeart({ heartRate, urgencyFactor }: { heartRate: number; urge
       const time = Date.now() * 0.001;
       const beatPhase = (time % beatInterval) / beatInterval;
       
-      // Systole and diastole
+      // More realistic systole and diastole
       let scale = 1;
-      if (beatPhase < 0.1) {
-        // Atrial contraction
+      let rotationX = 0;
+      if (beatPhase < 0.08) {
+        // Atrial contraction (rapid)
+        scale = 1.08;
+        rotationX = -0.02;
+      } else if (beatPhase < 0.12) {
+        // Isovolumetric contraction
         scale = 1.05;
-      } else if (beatPhase < 0.15) {
-        // Ventricular contraction
-        scale = 0.9;
-      } else if (beatPhase < 0.3) {
-        // Relaxation
-        scale = 0.9 + (beatPhase - 0.15) * 0.67;
+        rotationX = -0.01;
+      } else if (beatPhase < 0.25) {
+        // Ventricular ejection (rapid)
+        scale = 0.88;
+        rotationX = 0.03;
+      } else if (beatPhase < 0.35) {
+        // Isovolumetric relaxation
+        scale = 0.92;
+        rotationX = 0.01;
+      } else if (beatPhase < 0.6) {
+        // Ventricular filling (rapid)
+        scale = 0.92 + (beatPhase - 0.35) * 0.32;
+        rotationX = 0;
+      } else {
+        // Diastasis (slow filling)
+        scale = 1.0;
+        rotationX = 0;
       }
       
       heartRef.current.scale.setScalar(scale);
-      heartRef.current.rotation.y = Math.sin(time * 0.3) * 0.05;
+      heartRef.current.rotation.x = rotationX;
+      heartRef.current.rotation.y = Math.sin(time * 0.3) * 0.03;
     }
 
-    // Animate individual chambers
+    // Animate individual chambers with more realistic timing
     const beatInterval = 60 / heartRate;
     const time = Date.now() * 0.001;
     const beatPhase = (time % beatInterval) / beatInterval;
 
     if (ventricleLeftRef.current && ventricleRightRef.current) {
-      const ventricleScale = beatPhase < 0.15 ? 0.85 : beatPhase < 0.3 ? 0.85 + (beatPhase - 0.15) * 1 : 1;
-      ventricleLeftRef.current.scale.setScalar(ventricleScale);
-      ventricleRightRef.current.scale.setScalar(ventricleScale);
+      // Left ventricle (thicker, more muscular)
+      const lvScale = beatPhase < 0.12 ? 1.0 : beatPhase < 0.25 ? 0.82 : beatPhase < 0.35 ? 0.88 : 1.0;
+      ventricleLeftRef.current.scale.set(lvScale, lvScale * 0.95, lvScale);
+      
+      // Right ventricle (thinner)
+      const rvScale = beatPhase < 0.12 ? 1.0 : beatPhase < 0.25 ? 0.85 : beatPhase < 0.35 ? 0.90 : 1.0;
+      ventricleRightRef.current.scale.set(rvScale, rvScale * 0.9, rvScale);
     }
 
     if (atriumLeftRef.current && atriumRightRef.current) {
-      const atriumScale = beatPhase < 0.1 ? 1.1 : beatPhase < 0.15 ? 1.1 - (beatPhase - 0.1) * 2 : 1;
-      atriumLeftRef.current.scale.setScalar(atriumScale);
-      atriumRightRef.current.scale.setScalar(atriumScale);
+      // Atrial contraction
+      const atrialScale = beatPhase < 0.08 ? 1.15 : beatPhase < 0.12 ? 1.05 : 1.0;
+      atriumLeftRef.current.scale.setScalar(atrialScale);
+      atriumRightRef.current.scale.setScalar(atrialScale * 0.95);
+    }
+
+    // Aorta pulse
+    if (aortaRef.current) {
+      const aortaPulse = beatPhase < 0.25 ? 1.05 : 1.0;
+      aortaRef.current.scale.set(aortaPulse, 1.0, aortaPulse);
     }
   });
 
-  // Color based on urgency
-  const baseColor = urgencyFactor > 0.8 ? '#cc2222' : urgencyFactor > 0.5 ? '#cc4444' : '#aa3333';
-  const darkColor = urgencyFactor > 0.8 ? '#881111' : urgencyFactor > 0.5 ? '#992222' : '#772222';
+  // Color based on urgency with more realistic tissue colors
+  const baseColor = urgencyFactor > 0.8 ? '#b81c1c' : urgencyFactor > 0.5 ? '#c43535' : '#9c2a2a';
+  const darkColor = urgencyFactor > 0.8 ? '#7a1515' : urgencyFactor > 0.5 ? '#8a2020' : '#6b1e1e';
+  const muscleColor = urgencyFactor > 0.8 ? '#a01818' : urgencyFactor > 0.5 ? '#b02828' : '#8a2222';
 
   return (
-    <group ref={heartRef} rotation={[0.2, 0, 0.1]}>
-      {/* Left Ventricle (larger, forms the apex) */}
-      <mesh ref={ventricleLeftRef} position={[0.15, -0.3, 0]}>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshStandardMaterial color={baseColor} roughness={0.6} metalness={0.1} />
+    <group ref={heartRef} rotation={[0.15, 0, 0.08]}>
+      {/* Left Ventricle (larger, forms the apex, thicker wall) */}
+      <mesh ref={ventricleLeftRef} position={[0.18, -0.35, 0.05]}>
+        <sphereGeometry args={[0.52, 48, 48]} />
+        <meshStandardMaterial 
+          color={muscleColor} 
+          roughness={0.7} 
+          metalness={0.15}
+          normalScale={new THREE.Vector2(0.5, 0.5)}
+        />
       </mesh>
       
-      {/* Right Ventricle */}
-      <mesh ref={ventricleRightRef} position={[-0.2, -0.2, 0.1]}>
-        <sphereGeometry args={[0.4, 32, 32]} />
-        <meshStandardMaterial color={baseColor} roughness={0.6} metalness={0.1} />
+      {/* Right Ventricle (thinner, wraps around) */}
+      <mesh ref={ventricleRightRef} position={[-0.22, -0.25, 0.12]}>
+        <sphereGeometry args={[0.42, 48, 48]} />
+        <meshStandardMaterial 
+          color={baseColor} 
+          roughness={0.7} 
+          metalness={0.15}
+        />
       </mesh>
 
-      {/* Left Atrium */}
-      <mesh ref={atriumLeftRef} position={[0.2, 0.3, -0.1]}>
-        <sphereGeometry args={[0.35, 32, 32]} />
-        <meshStandardMaterial color={darkColor} roughness={0.7} metalness={0.1} />
+      {/* Interventricular septum (visible between ventricles) */}
+      <mesh position={[0.0, -0.3, 0.08]} rotation={[0, 0.3, 0]}>
+        <boxGeometry args={[0.08, 0.6, 0.3]} />
+        <meshStandardMaterial color={darkColor} roughness={0.8} />
       </mesh>
 
-      {/* Right Atrium */}
-      <mesh ref={atriumRightRef} position={[-0.25, 0.25, 0.05]}>
-        <sphereGeometry args={[0.3, 32, 32]} />
-        <meshStandardMaterial color={darkColor} roughness={0.7} metalness={0.1} />
+      {/* Left Atrium (posterior, receives pulmonary veins) */}
+      <mesh ref={atriumLeftRef} position={[0.22, 0.32, -0.12]}>
+        <sphereGeometry args={[0.36, 48, 48]} />
+        <meshStandardMaterial 
+          color={darkColor} 
+          roughness={0.75} 
+          metalness={0.1}
+        />
       </mesh>
 
-      {/* Aorta (large artery coming out) */}
-      <mesh position={[0, 0.5, 0]} rotation={[0, 0, -0.3]}>
-        <cylinderGeometry args={[0.12, 0.15, 0.6, 16]} />
-        <meshStandardMaterial color="#cc3333" roughness={0.5} />
+      {/* Right Atrium (receives vena cava) */}
+      <mesh ref={atriumRightRef} position={[-0.28, 0.28, 0.08]}>
+        <sphereGeometry args={[0.32, 48, 48]} />
+        <meshStandardMaterial 
+          color={darkColor} 
+          roughness={0.75} 
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Aorta (large ascending artery) */}
+      <mesh ref={aortaRef} position={[0.05, 0.55, 0]} rotation={[0, 0, -0.25]}>
+        <cylinderGeometry args={[0.14, 0.16, 0.65, 24]} />
+        <meshStandardMaterial color="#d43838" roughness={0.6} metalness={0.2} />
       </mesh>
       
-      {/* Aortic arch */}
-      <mesh position={[0.15, 0.75, 0]} rotation={[0, 0, 0.5]}>
-        <torusGeometry args={[0.2, 0.1, 16, 32, Math.PI]} />
-        <meshStandardMaterial color="#cc3333" roughness={0.5} />
+      {/* Aortic arch (curved portion) */}
+      <mesh position={[0.18, 0.82, 0]} rotation={[0, 0, 0.6]}>
+        <torusGeometry args={[0.22, 0.12, 24, 32, Math.PI * 0.8]} />
+        <meshStandardMaterial color="#d43838" roughness={0.6} metalness={0.2} />
       </mesh>
 
-      {/* Pulmonary artery */}
-      <mesh position={[-0.1, 0.45, 0.15]} rotation={[0.3, 0, 0.2]}>
-        <cylinderGeometry args={[0.08, 0.1, 0.4, 16]} />
-        <meshStandardMaterial color="#6644aa" roughness={0.5} />
+      {/* Descending aorta */}
+      <mesh position={[0.35, 0.65, -0.1]} rotation={[0.3, 0, 0.8]}>
+        <cylinderGeometry args={[0.11, 0.12, 0.5, 20]} />
+        <meshStandardMaterial color="#c83030" roughness={0.6} />
+      </mesh>
+
+      {/* Pulmonary trunk */}
+      <mesh position={[-0.08, 0.48, 0.18]} rotation={[0.35, 0, 0.15]}>
+        <cylinderGeometry args={[0.1, 0.12, 0.45, 20]} />
+        <meshStandardMaterial color="#5a3d8a" roughness={0.6} metalness={0.15} />
+      </mesh>
+
+      {/* Left pulmonary artery */}
+      <mesh position={[-0.25, 0.55, 0.25]} rotation={[0.5, 0.3, 0.4]}>
+        <cylinderGeometry args={[0.07, 0.08, 0.35, 16]} />
+        <meshStandardMaterial color="#4a3578" roughness={0.6} />
+      </mesh>
+
+      {/* Right pulmonary artery */}
+      <mesh position={[0.1, 0.52, 0.28]} rotation={[0.4, -0.2, 0.3]}>
+        <cylinderGeometry args={[0.07, 0.08, 0.35, 16]} />
+        <meshStandardMaterial color="#4a3578" roughness={0.6} />
       </mesh>
 
       {/* Superior vena cava */}
-      <mesh position={[-0.3, 0.5, -0.1]} rotation={[0, 0, -0.2]}>
-        <cylinderGeometry args={[0.09, 0.1, 0.5, 16]} />
-        <meshStandardMaterial color="#4444aa" roughness={0.5} />
+      <mesh position={[-0.32, 0.55, -0.08]} rotation={[0, 0, -0.15]}>
+        <cylinderGeometry args={[0.1, 0.11, 0.55, 20]} />
+        <meshStandardMaterial color="#3d4a8a" roughness={0.6} metalness={0.1} />
       </mesh>
 
-      {/* Coronary arteries (surface detail) */}
-      <mesh position={[0.3, 0, 0.2]} rotation={[0.5, 0.3, 0]}>
-        <torusGeometry args={[0.25, 0.02, 8, 32, Math.PI * 0.7]} />
-        <meshStandardMaterial color="#ff4444" roughness={0.4} />
-      </mesh>
-      <mesh position={[-0.1, -0.1, 0.3]} rotation={[0.3, -0.2, 0.5]}>
-        <torusGeometry args={[0.2, 0.015, 8, 32, Math.PI * 0.6]} />
-        <meshStandardMaterial color="#ff4444" roughness={0.4} />
+      {/* Inferior vena cava */}
+      <mesh position={[-0.28, -0.15, -0.1]} rotation={[0.2, 0, -0.1]}>
+        <cylinderGeometry args={[0.11, 0.12, 0.4, 20]} />
+        <meshStandardMaterial color="#3d4a8a" roughness={0.6} metalness={0.1} />
       </mesh>
 
-      {/* Fat deposits (realistic detail) */}
-      <mesh position={[0.1, 0.1, 0.35]}>
-        <sphereGeometry args={[0.15, 16, 16]} />
-        <meshStandardMaterial color="#ffcc88" roughness={0.8} transparent opacity={0.6} />
+      {/* Pulmonary veins (4 total, 2 from each lung) */}
+      <mesh position={[0.35, 0.35, -0.2]} rotation={[0.6, 0.4, 0.2]}>
+        <cylinderGeometry args={[0.06, 0.07, 0.3, 16]} />
+        <meshStandardMaterial color="#8a3535" roughness={0.6} />
       </mesh>
-      <mesh position={[-0.2, 0.15, 0.3]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial color="#ffcc88" roughness={0.8} transparent opacity={0.6} />
+      <mesh position={[0.32, 0.28, -0.25]} rotation={[0.7, 0.3, 0.3]}>
+        <cylinderGeometry args={[0.06, 0.07, 0.3, 16]} />
+        <meshStandardMaterial color="#8a3535" roughness={0.6} />
+      </mesh>
+
+      {/* Coronary arteries (more detailed, wrapping around heart) */}
+      {/* Left anterior descending */}
+      <mesh position={[0.28, 0.05, 0.25]} rotation={[0.6, 0.4, 0.1]}>
+        <torusGeometry args={[0.28, 0.025, 12, 32, Math.PI * 0.75]} />
+        <meshStandardMaterial color="#ff3838" roughness={0.5} metalness={0.3} />
+      </mesh>
+      
+      {/* Circumflex artery */}
+      <mesh position={[-0.15, -0.05, 0.32]} rotation={[0.4, -0.3, 0.6]}>
+        <torusGeometry args={[0.24, 0.022, 12, 32, Math.PI * 0.65]} />
+        <meshStandardMaterial color="#ff3838" roughness={0.5} metalness={0.3} />
+      </mesh>
+
+      {/* Right coronary artery */}
+      <mesh position={[0.05, -0.2, 0.35]} rotation={[0.3, 0.2, 0.4]}>
+        <torusGeometry args={[0.26, 0.02, 12, 32, Math.PI * 0.6]} />
+        <meshStandardMaterial color="#ff3838" roughness={0.5} metalness={0.3} />
+      </mesh>
+
+      {/* Epicardial fat deposits (realistic detail) */}
+      <mesh position={[0.12, 0.15, 0.38]}>
+        <sphereGeometry args={[0.16, 20, 20]} />
+        <meshStandardMaterial color="#f5d68a" roughness={0.85} transparent opacity={0.65} />
+      </mesh>
+      <mesh position={[-0.18, 0.2, 0.35]}>
+        <sphereGeometry args={[0.14, 20, 20]} />
+        <meshStandardMaterial color="#f5d68a" roughness={0.85} transparent opacity={0.65} />
+      </mesh>
+      <mesh position={[0.05, -0.1, 0.4]}>
+        <sphereGeometry args={[0.12, 20, 20]} />
+        <meshStandardMaterial color="#f5d68a" roughness={0.85} transparent opacity={0.6} />
+      </mesh>
+
+      {/* Heart valves (simplified but visible) */}
+      {/* Aortic valve */}
+      <mesh position={[0.05, 0.25, 0.05]} rotation={[0.2, 0, 0]}>
+        <torusGeometry args={[0.08, 0.015, 12, 24]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} metalness={0.5} />
+      </mesh>
+
+      {/* Mitral valve */}
+      <mesh position={[0.2, 0.1, -0.05]} rotation={[0.3, 0.2, 0]}>
+        <torusGeometry args={[0.09, 0.015, 12, 24]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} metalness={0.5} />
+      </mesh>
+
+      {/* Tricuspid valve */}
+      <mesh position={[-0.18, 0.08, 0.1]} rotation={[0.2, -0.2, 0]}>
+        <torusGeometry args={[0.085, 0.015, 12, 24]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} metalness={0.5} />
+      </mesh>
+
+      {/* Pulmonary valve */}
+      <mesh position={[-0.08, 0.28, 0.18]} rotation={[0.4, 0, 0.2]}>
+        <torusGeometry args={[0.07, 0.012, 12, 24]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} metalness={0.5} />
       </mesh>
     </group>
   );

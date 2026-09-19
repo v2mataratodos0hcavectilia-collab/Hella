@@ -1015,10 +1015,10 @@ export function useSimulation() {
         const bulgingMultiplier = fillRatio > 1.0 ? 2.0 : 1.0;
         const rawLevel = newState.trainingLevel + simDt * trainingRate * bulgingMultiplier;
         // Round to nearest hundredth
-        newState.trainingLevel = Math.min(30, Math.round(rawLevel * 100) / 100);
+        newState.trainingLevel = Math.min(90, Math.round(rawLevel * 100) / 100);
         // Round maxCapacity to nearest 100
-        const rawCapacity = 500 + newState.trainingLevel * 20;
-        newState.maxCapacity = Math.min(1100, Math.round(rawCapacity / 100) * 100);
+        const rawCapacity = 500 + newState.trainingLevel * 10;
+        newState.maxCapacity = Math.min(1400, Math.round(rawCapacity / 100) * 100);
         newState.desensitizationLevel = Math.min(100, newState.desensitizationLevel + simDt * trainingRate * 10);
         newState.nerveSensitivity = Math.max(30, 100 - newState.desensitizationLevel * 0.7);
       }
