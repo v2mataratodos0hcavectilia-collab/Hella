@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useSimulation } from './hooks/useSimulation';
 import { useAudio } from './hooks/useAudio';
+import useAudioSystem from './hooks/useAudioSystem';
 import MicroView from './components/MicroView';
 import MacroView from './components/MacroView';
 import ControlPanel from './components/ControlPanel';
@@ -17,6 +18,13 @@ import WeatherPanel from './components/WeatherPanel';
 import RelationshipsPanel from './components/RelationshipsPanel';
 import TrainingPanel from './components/TrainingPanel';
 import MoodRing from './components/MoodRing';
+import SettingsMenu, { Settings } from './components/SettingsMenu';
+import StatsDashboard from './components/StatsDashboard';
+import Tutorial from './components/Tutorial';
+import EnhancedSocial from './components/EnhancedSocial';
+import DailyChallenges from './components/DailyChallenges';
+import DynamicEvents from './components/DynamicEvents';
+import PredictionSystem from './components/PredictionSystem';
 import { Scenario } from './types';
 
 function CollapsibleBottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -86,10 +94,33 @@ function App() {
   } = useSimulation();
 
   const { initAudio } = useAudio(state.heartRate, state.breathingRate, state.isPaused);
-  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements'>('split');
+  const [activeView, setActiveView] = useState<'micro' | 'macro' | 'split' | 'social' | 'heart' | 'lungs' | 'stomach' | 'achievements' | 'stats' | 'challenges' | 'events' | 'prediction'>('split');
   const [currentScenario, setCurrentScenario] = useState<string | null>('sandbox');
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [settings, setSettings] = useState<Settings>({
+    audioEnabled: false,
+    heartbeatAudio: true,
+    breathingAudio: true,
+    notificationsEnabled: true,
+    difficulty: 'normal',
+    timeSpeed: 1,
+    showPredictions: true,
+    autoPlay: false,
+    colorblindMode: false,
+    textSize: 'medium',
+  });
+
+  // Initialize audio system
+  useAudioSystem({
+    heartRate: state.heartRate,
+    breathingRate: state.breathingRate,
+    heartbeatEnabled: settings.heartbeatAudio && settings.audioEnabled,
+    breathingEnabled: settings.breathingAudio && settings.audioEnabled,
+    masterVolume: 0.5,
+  });
 
   const handleScenarioSelect = useCallback((scenario: Scenario) => {
     setCurrentScenario(scenario.id);
@@ -176,13 +207,55 @@ function App() {
             >
               🏆 Achievements
             </button>
+            <button
+              onClick={() => setActiveView('stats')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'stats' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              📊 Stats
+            </button>
+            <button
+              onClick={() => setActiveView('challenges')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'challenges' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🎯 Challenges
+            </button>
+            <button
+              onClick={() => setActiveView('events')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'events' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              ⚡ Events
+            </button>
+            <button
+              onClick={() => setActiveView('prediction')}
+              className={`px-3 py-1 text-xs font-mono ${activeView === 'prediction' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              🔮 Predict
+            </button>
           </div>
+          {/* Settings & Tutorial Buttons */}
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
+            title="Tutorial"
+          >
+            📚 Tutorial
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="px-3 py-1 text-xs font-mono rounded bg-gray-700 text-gray-400 hover:bg-gray-600"
+            title="Settings"
+          >
+            ⚙️ Settings
+          </button>
           {/* Audio Toggle */}
           <button
-            onClick={handleEnableAudio}
-            className={`px-3 py-1 text-xs font-mono rounded ${audioEnabled ? 'bg-green-700 text-green-200' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+            onClick={() => {
+              handleEnableAudio();
+              setSettings({ ...settings, audioEnabled: !settings.audioEnabled });
+            }}
+            className={`px-3 py-1 text-xs font-mono rounded ${settings.audioEnabled ? 'bg-green-700 text-green-200' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
           >
-            {audioEnabled ? '🔊 Audio ON' : '🔇 Enable Audio'}
+            {settings.audioEnabled ? '🔊 Audio ON' : '🔇 Enable Audio'}
           </button>
         </div>
       </header>
@@ -235,6 +308,22 @@ function App() {
             ) : activeView === 'stomach' ? (
               <div className="flex-1 p-1">
                 <StomachView state={state} />
+              </div>
+            ) : activeView === 'stats' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <StatsDashboard state={state} showPredictions={settings.showPredictions} />
+              </div>
+            ) : activeView === 'challenges' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <DailyChallenges state={state} />
+              </div>
+            ) : activeView === 'events' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <DynamicEvents state={state} />
+              </div>
+            ) : activeView === 'prediction' ? (
+              <div className="flex-1 p-1 overflow-y-auto">
+                <PredictionSystem state={state} />
               </div>
             ) : (
               <div className="flex-1 p-1">
@@ -332,6 +421,20 @@ function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Settings Menu */}
+      {showSettings && (
+        <SettingsMenu
+          settings={settings}
+          onSettingsChange={setSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {/* Tutorial */}
+      {showTutorial && (
+        <Tutorial onComplete={() => setShowTutorial(false)} />
       )}
     </div>
   );
