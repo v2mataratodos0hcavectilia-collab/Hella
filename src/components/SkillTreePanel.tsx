@@ -90,10 +90,9 @@ export default function SkillTreePanel({ state, upgradeSkill }: SkillTreePanelPr
             <h4 className="text-base font-bold text-white mb-3">{tree.name}</h4>
             <div className="space-y-2">
               {tree.skills.map((skill) => {
-                const skillTree = state.skills[treeKey as keyof typeof state.skills];
-                const isUnlocked = skillTree.level > 0; // Simplified check
+                const isUnlocked = state.unlockedSkills.includes(skill.id);
                 const canAfford = state.money >= skill.cost;
-                const hasPrereq = !skill.requires || isUnlocked; // Simplified prereq check
+                const hasPrereq = !skill.requires || state.unlockedSkills.includes(skill.requires);
                 
                 return (
                   <div

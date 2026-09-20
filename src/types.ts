@@ -169,6 +169,7 @@ export interface SimulationState {
   
   // Skill Trees
   skills: SkillTree;
+  unlockedSkills: string[]; // Track which specific skills are unlocked
 }
 
 export interface HealthEffects {

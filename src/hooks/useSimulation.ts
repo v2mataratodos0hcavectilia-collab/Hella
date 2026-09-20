@@ -246,6 +246,7 @@ const INITIAL_STATE: SimulationState = {
       trust: 0,
     },
   },
+  unlockedSkills: [], // Track which specific skills are unlocked
 };
 
 interface PlayerOverrides {
@@ -1798,8 +1799,10 @@ export function useSimulation() {
   const upgradeSkill = useCallback((tree: 'bladderControl' | 'socialMedia' | 'career' | 'relationships', skill: string, cost: number) => {
     setState(prev => {
       if (prev.money < cost) return prev;
+      if (prev.unlockedSkills.includes(skill)) return prev; // Already unlocked
       
       const newSkills = { ...prev.skills };
+      const newUnlockedSkills = [...prev.unlockedSkills, skill];
       
       // Update the specific skill tree
       if (tree === 'bladderControl') {
@@ -1827,6 +1830,7 @@ export function useSimulation() {
       return {
         ...prev,
         skills: newSkills,
+        unlockedSkills: newUnlockedSkills,
         money: prev.money - cost,
       };
     });
